@@ -4,9 +4,12 @@ import { useTripDetails } from '@/hooks/useTrips';
 import { useExpenseDetails } from '@/hooks/useExpenses';
 import { useVehicles } from '@/hooks/useVehicles';
 import { useEntities } from '@/hooks/useReference';
+import { useMaintenanceRecords } from '@/hooks/useMaintenance';
+import { useMaintenanceTypes } from '@/hooks/useLookups';
 import {
   buildEntityMileageSummary,
   buildExpenseReport,
+  buildMaintenanceReport,
   buildMileageLog,
   buildVehicleSheet,
   type ReportTable,
@@ -32,6 +35,8 @@ export function ReportsPage() {
   const { data: trips, isLoading: l1 } = useTripDetails();
   const { data: expenses, isLoading: l2 } = useExpenseDetails();
   const { data: vehicles, isLoading: l3 } = useVehicles();
+  const { data: maintenance, isLoading: l4 } = useMaintenanceRecords();
+  const { data: maintenanceTypes } = useMaintenanceTypes();
   const { data: entities } = useEntities();
 
   const [entity, setEntity] = useState<string | 'all'>('all');
@@ -39,7 +44,7 @@ export function ReportsPage() {
   const [to, setTo] = useState('');
 
   const stamp = todayISO();
-  const isLoading = l1 || l2 || l3;
+  const isLoading = l1 || l2 || l3 || l4;
 
   const fTrips = useMemo(
     () =>
@@ -64,17 +69,32 @@ export function ReportsPage() {
     [entities, entity],
   );
 
+  const fMaintenance = useMemo(
+    () =>
+      (maintenance ?? []).filter(
+        (m) => (entity === 'all' || m.entity_id === entity) && inRange(m.service_date, from, to),
+      ),
+    [maintenance, entity, from, to],
+  );
+
   const entityName = (id: string) => entities?.find((e) => e.id === id)?.name ?? '';
+  const vehicleLabel = (id: string) => {
+    const v = vehicles?.find((x) => x.id === id);
+    return v ? [v.year, v.make, v.model].filter(Boolean).join(' ') || v.license_plate || '' : '';
+  };
+  const typeName = (id: string) => maintenanceTypes?.find((t) => t.id === id)?.name ?? '';
 
   const mileageLog = useMemo(() => buildMileageLog(fTrips), [fTrips]);
   const entitySummary = useMemo(() => buildEntityMileageSummary(fTrips, scopedEntities), [fTrips, scopedEntities]);
   const expenseReport = useMemo(() => buildExpenseReport(fExpenses), [fExpenses]);
+  const maintenanceReport = buildMaintenanceReport(fMaintenance, { entityName, vehicleLabel, typeName });
 
   function exportFullWorkbook() {
     downloadXLSX(`mileway-export-${stamp}.xlsx`, [
       { name: 'Trips', columns: mileageLog.columns, rows: mileageLog.rows },
       { name: 'Vehicles', ...buildVehicleSheet(fVehicles, entityName) },
       { name: 'Expenses', columns: expenseReport.columns, rows: expenseReport.rows },
+      { name: 'Maintenance', columns: maintenanceReport.columns, rows: maintenanceReport.rows },
     ]);
   }
 
@@ -147,6 +167,16 @@ export function ReportsPage() {
             onXLSX={() =>
               downloadXLSX(`mileway-expenses-${stamp}.xlsx`, [
                 { name: 'Expenses', columns: expenseReport.columns, rows: expenseReport.rows },
+              ])
+            }
+          />
+          <ReportSection
+            title="Maintenance report"
+            table={maintenanceReport}
+            onCSV={() => downloadCSV(`mileway-maintenance-${stamp}.csv`, maintenanceReport.rows, maintenanceReport.columns)}
+            onXLSX={() =>
+              downloadXLSX(`mileway-maintenance-${stamp}.xlsx`, [
+                { name: 'Maintenance', columns: maintenanceReport.columns, rows: maintenanceReport.rows },
               ])
             }
           />

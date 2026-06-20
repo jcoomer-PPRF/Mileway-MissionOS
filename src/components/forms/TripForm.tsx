@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntities, useTripCategories } from '@/hooks/useReference';
 import { useVehicles } from '@/hooks/useVehicles';
+import { useSavedLocations } from '@/hooks/useLocations';
 import type { TripInput } from '@/hooks/useTrips';
 import { todayISO } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,20 +30,42 @@ export function TripForm({
   const { data: entities } = useEntities();
   const { data: vehicles } = useVehicles();
   const { data: categories } = useTripCategories();
+  const { data: locations } = useSavedLocations();
 
   const activeVehicles = (vehicles ?? []).filter((v) => v.is_active || v.id === initial?.vehicle_id);
   const activeCategories = (categories ?? []).filter((c) => c.is_active || c.id === initial?.category_id);
+  const activeLocations = (locations ?? []).filter((l) => l.is_active);
 
   const [entityId, setEntityId] = useState(initial?.entity_id ?? profile?.default_entity_id ?? '');
   const [vehicleId, setVehicleId] = useState(initial?.vehicle_id ?? '');
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? '');
   const [tripDate, setTripDate] = useState(initial?.trip_date ?? todayISO());
-  const [source, setSource] = useState<'manual' | 'odometer'>(initial?.distance_source ?? 'manual');
+  const [source, setSource] = useState<'manual' | 'odometer'>(
+    initial?.distance_source === 'odometer' ? 'odometer' : 'manual',
+  );
   const [odoStart, setOdoStart] = useState(initial?.odometer_start?.toString() ?? '');
   const [odoEnd, setOdoEnd] = useState(initial?.odometer_end?.toString() ?? '');
   const [miles, setMiles] = useState(initial?.distance_miles?.toString() ?? '');
   const [destination, setDestination] = useState(initial?.destination ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [startLocationId, setStartLocationId] = useState(initial?.start_location_id ?? '');
+  const [endLocationId, setEndLocationId] = useState(initial?.end_location_id ?? '');
+  const [autoCategorized, setAutoCategorized] = useState(initial?.auto_categorized ?? false);
+
+  function handleCategoryChange(value: string) {
+    setCategoryId(value);
+    setAutoCategorized(false); // a manual override clears auto-categorization
+  }
+
+  function applyAutoCategory(startId: string, endId: string) {
+    const endLoc = locations?.find((l) => l.id === endId);
+    const startLoc = locations?.find((l) => l.id === startId);
+    const def = endLoc?.default_trip_category_id ?? startLoc?.default_trip_category_id ?? null;
+    if (def) {
+      setCategoryId(def);
+      setAutoCategorized(true);
+    }
+  }
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -93,6 +116,9 @@ export function TripForm({
       distance_miles: distance,
       destination: destination.trim() || null,
       notes: notes.trim() || null,
+      start_location_id: startLocationId || null,
+      end_location_id: endLocationId || null,
+      auto_categorized: autoCategorized,
     };
   }
 
@@ -137,8 +163,13 @@ export function TripForm({
             ))}
           </Select>
         </Field>
-        <Field label="Category" required error={errors.category_id}>
-          <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+        <Field
+          label="Category"
+          required
+          error={errors.category_id}
+          hint={autoCategorized ? 'Auto-set from the selected location.' : undefined}
+        >
+          <Select value={categoryId} onChange={(e) => handleCategoryChange(e.target.value)}>
             <option value="">Select…</option>
             {activeCategories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -187,6 +218,41 @@ export function TripForm({
           <Input type="number" step="0.1" min="0" value={miles} onChange={(e) => setMiles(e.target.value)} className="sm:w-48" />
         </Field>
       )}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Start location" hint="Picking a saved location can auto-set the category.">
+          <Select
+            value={startLocationId}
+            onChange={(e) => {
+              setStartLocationId(e.target.value);
+              applyAutoCategory(e.target.value, endLocationId);
+            }}
+          >
+            <option value="">—</option>
+            {activeLocations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="End location">
+          <Select
+            value={endLocationId}
+            onChange={(e) => {
+              setEndLocationId(e.target.value);
+              applyAutoCategory(startLocationId, e.target.value);
+            }}
+          >
+            <option value="">—</option>
+            {activeLocations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
 
       <Field label="Destination" hint="Optional — strengthens the IRS log.">
         <Input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="e.g. County clinic" />

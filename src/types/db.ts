@@ -1,9 +1,11 @@
 // Hand-written row types mirroring the Supabase schema (supabase/migrations).
 // Run `npm run db:types` against a linked project to regenerate richer types.
 
-export type UserRole = 'administrator' | 'staff' | 'auditor';
+// Phase 2 permission tiers (Phase 1 administrator/staff were renamed to
+// owner/contributor in migration 0006).
+export type UserRole = 'owner' | 'manager' | 'contributor' | 'accountant' | 'auditor';
 export type EntityType = 'nonprofit_501c3' | 'llc';
-export type DistanceSource = 'manual' | 'odometer';
+export type DistanceSource = 'manual' | 'odometer' | 'gps';
 export type IrsRateType = 'business' | 'medical' | 'charitable' | 'none';
 export type AuditAction = 'insert' | 'update' | 'delete';
 
@@ -12,7 +14,17 @@ export interface Profile {
   email: string;
   full_name: string | null;
   role: UserRole;
+  job_title_id: string | null;
   default_entity_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobTitle {
+  id: string;
+  name: string;
+  sort_order: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -92,6 +104,17 @@ export interface Trip {
   distance_source: DistanceSource;
   destination: string | null;
   notes: string | null;
+  // Phase 2
+  start_lat: number | null;
+  start_lng: number | null;
+  end_lat: number | null;
+  end_lng: number | null;
+  started_at: string | null;
+  ended_at: string | null;
+  route_polyline: string | null;
+  start_location_id: string | null;
+  end_location_id: string | null;
+  auto_categorized: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -112,6 +135,160 @@ export interface Expense {
   updated_at: string;
   created_by: string | null;
   updated_by: string | null;
+}
+
+// ---- Phase 2: locations ----
+export interface LocationType {
+  id: string;
+  key: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavedLocation {
+  id: string;
+  entity_id: string | null;
+  name: string;
+  location_type_id: string | null;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  default_trip_category_id: string | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
+// ---- Phase 2: maintenance ----
+export interface MaintenanceType {
+  id: string;
+  key: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaintenanceRecord {
+  id: string;
+  vehicle_id: string;
+  entity_id: string;
+  maintenance_type_id: string;
+  service_date: string;
+  odometer_at_service: number | null;
+  cost: number | null;
+  vendor: string | null;
+  notes: string | null;
+  linked_expense_id: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
+export interface MaintenanceSchedule {
+  id: string;
+  vehicle_id: string;
+  maintenance_type_id: string;
+  interval_miles: number | null;
+  interval_months: number | null;
+  last_service_date: string | null;
+  last_service_odometer: number | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
+export interface MaintenanceDue {
+  id: string;
+  vehicle_id: string;
+  vehicle_label: string;
+  entity_id: string;
+  maintenance_type_id: string;
+  maintenance_type_name: string;
+  interval_miles: number | null;
+  interval_months: number | null;
+  last_service_date: string | null;
+  last_service_odometer: number | null;
+  current_odometer: number;
+  next_due_odometer: number | null;
+  next_due_date: string | null;
+  miles_remaining: number | null;
+  days_remaining: number | null;
+  is_due: boolean;
+}
+
+// ---- Phase 2: documents ----
+export interface DocumentType {
+  id: string;
+  key: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentRow {
+  id: string;
+  entity_id: string;
+  vehicle_id: string | null;
+  profile_id: string | null;
+  document_type_id: string;
+  title: string;
+  file_path: string | null;
+  issued_date: string | null;
+  expiration_date: string | null;
+  tags: string[];
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
+export interface DocumentExpiring {
+  id: string;
+  entity_id: string;
+  entity_name: string;
+  document_type_id: string;
+  document_type_name: string;
+  title: string;
+  vehicle_id: string | null;
+  vehicle_label: string | null;
+  profile_id: string | null;
+  profile_name: string | null;
+  issued_date: string | null;
+  expiration_date: string;
+  days_until_expiration: number;
+  file_path: string | null;
+}
+
+export interface DriverCredential {
+  id: string;
+  profile_id: string;
+  profile_name: string | null;
+  profile_email: string;
+  document_type_id: string;
+  document_type_name: string;
+  title: string;
+  entity_id: string;
+  issued_date: string | null;
+  expiration_date: string | null;
+  days_until_expiration: number | null;
+  file_path: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // ---- View row types (joined, for reporting/dashboard) ----
@@ -139,6 +316,14 @@ export interface TripDetail {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Phase 2 additions
+  started_at: string | null;
+  ended_at: string | null;
+  start_location_id: string | null;
+  start_location_name: string | null;
+  end_location_id: string | null;
+  end_location_name: string | null;
+  auto_categorized: boolean;
 }
 
 export interface ExpenseDetail {

@@ -3,12 +3,15 @@ import { NavLink, Outlet } from 'react-router-dom';
 import {
   Car,
   FileText,
+  FolderOpen,
   Gauge,
   LayoutDashboard,
+  MapPin,
   Menu,
   Receipt,
   Settings,
   ShieldCheck,
+  Wrench,
   LogOut,
   X,
 } from 'lucide-react';
@@ -29,10 +32,13 @@ const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/trips', label: 'Trips', icon: Gauge },
   { to: '/vehicles', label: 'Vehicles', icon: Car },
+  { to: '/maintenance', label: 'Maintenance', icon: Wrench },
   { to: '/expenses', label: 'Expenses', icon: Receipt },
+  { to: '/locations', label: 'Locations', icon: MapPin },
+  { to: '/documents', label: 'Documents', icon: FolderOpen },
   { to: '/reports', label: 'Reports', icon: FileText },
-  { to: '/audit', label: 'Audit Log', icon: ShieldCheck, roles: ['administrator', 'auditor'] },
-  { to: '/settings', label: 'Settings', icon: Settings, roles: ['administrator'] },
+  { to: '/audit', label: 'Audit Log', icon: ShieldCheck, roles: ['owner', 'accountant', 'auditor'] },
+  { to: '/settings', label: 'Settings', icon: Settings, roles: ['owner'] },
 ];
 
 export function AppLayout() {

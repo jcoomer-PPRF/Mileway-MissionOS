@@ -6,7 +6,10 @@ import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { TripsPage } from '@/pages/TripsPage';
 import { VehiclesPage } from '@/pages/VehiclesPage';
+import { MaintenancePage } from '@/pages/MaintenancePage';
 import { ExpensesPage } from '@/pages/ExpensesPage';
+import { LocationsPage } from '@/pages/LocationsPage';
+import { DocumentsPage } from '@/pages/DocumentsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { AuditLogPage } from '@/pages/AuditLogPage';
 import { SettingsPage } from '@/pages/SettingsPage';
@@ -21,12 +24,15 @@ export function App() {
           <Route index element={<DashboardPage />} />
           <Route path="trips" element={<TripsPage />} />
           <Route path="vehicles" element={<VehiclesPage />} />
+          <Route path="maintenance" element={<MaintenancePage />} />
           <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="locations" element={<LocationsPage />} />
+          <Route path="documents" element={<DocumentsPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route element={<RequireRole allow={['administrator', 'auditor']} />}>
+          <Route element={<RequireRole allow={['owner', 'accountant', 'auditor']} />}>
             <Route path="audit" element={<AuditLogPage />} />
           </Route>
-          <Route element={<RequireRole allow={['administrator']} />}>
+          <Route element={<RequireRole allow={['owner']} />}>
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />

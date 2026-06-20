@@ -51,7 +51,8 @@ npm install
 
 ### 3. Apply the database schema
 
-Run the migrations in `supabase/migrations/` **in order** (`0001` → `0005`). Either:
+Run the migrations in `supabase/migrations/` **in order** (`0001` → `0010`; the Phase 2 enum
+migration `0006` must run before `0007`). Either:
 
 - **Supabase Dashboard → SQL Editor**: paste each file’s contents and run, in order; or
 - **Supabase CLI**:
@@ -86,17 +87,25 @@ npm run preview  # serve the production build
 
 ---
 
-## Roles
+## Roles (permission tiers)
 
-| Role | Access |
+Phase 2 splits identity into a **job title** (display/reporting only — nine titles seeded) and a
+**permission tier** (`role`) that actually governs access:
+
+| Tier | Access |
 |---|---|
-| **Administrator** | Full access to all records and settings (entities, categories, rates, users). |
-| **Staff** | Reads everything; creates records; edits/deletes **only the records they created**. |
+| **Owner** | Full access, including settings and user management. |
+| **Manager** | Read/write **all** operational data. No settings or user management. |
+| **Contributor** | Reads everything; creates records; edits/deletes **only the records they created**. |
+| **Accountant** | Reads everything (incl. audit log) and runs/exports reports. No operational edits. |
 | **Read-Only Auditor** | Read-only access to all records **and the audit log**. No writes. |
 
 Enforcement is twofold: the UI hides actions a role can’t take, and **Postgres RLS policies**
-(`supabase/migrations/0002_rls.sql`) enforce the same rules at the database — the API rejects
-unauthorized writes regardless of the client.
+enforce the same rules at the database — the API rejects unauthorized writes regardless of the
+client. The first account to sign up bootstraps as **Owner**.
+
+> Upgrading from Phase 1: migration `0006` renames `administrator → owner` and `staff → contributor`
+> in place, so existing users keep their access automatically.
 
 ---
 
@@ -121,6 +130,12 @@ Two `security_invoker` views (`v_trip_details`, `v_expense_details`) flatten joi
 per-trip applied rate + estimated deduction; they power the dashboard and reports while still
 respecting each user’s RLS.
 
+**Phase 2 adds:** `job_titles`, `location_types`, `saved_locations`, `maintenance_types`,
+`maintenance_records`, `maintenance_schedules`, `document_types`, `documents` (+ a `documents`
+storage bucket), and additive GPS/location columns on `trips`. New views: `v_vehicle_odometer`,
+`v_maintenance_due`, `v_documents_expiring`, `v_driver_credentials`. Geofence helpers
+`earth_distance_m()` / `find_location_for_point()` support auto-categorization.
+
 ---
 
 ## Reports & export
@@ -131,6 +146,24 @@ respecting each user’s RLS.
   with separate **Trips / Vehicles / Expenses** tabs.
 
 ---
+
+## Phase 2 (this release)
+
+Extends the Phase 1 schema (migrations `0006`–`0010`) — same conventions throughout.
+
+- **Five-tier permissions** (owner / manager / contributor / accountant / auditor) plus a separate,
+  editable **job title** lookup (nine titles).
+- **Saved locations (geofences)** with destination recognition; **auto-categorization** — picking a
+  saved location on a trip applies its default category (a manual category override clears it).
+  Trips also carry GPS fields (lat/lng, timestamps, route) ready for the native app.
+- **Fleet maintenance** — service history, schedules (mileage and/or time intervals), and a computed
+  **what's-due** view based on each vehicle's odometer (derived from trips) and last service.
+- **Documents & driver credentials** — one store for organization, vehicle, and per-person
+  documents (license, insurance verification, background check, training certs) in a private
+  `documents` bucket, with **expiration tracking** and a driver-credentials view. Sensitive
+  per-person documents are visible only to the subject and oversight roles.
+- **Dashboard "Needs attention"** — maintenance due, vehicle insurance/registration, and expiring
+  documents at a glance. **Maintenance** added to reports + the Excel workbook.
 
 ## Phase 1 scope
 
@@ -155,11 +188,14 @@ respecting each user’s RLS.
 - **Expense → vehicle is optional** (covers non-vehicle costs like general supplies).
 - Entity **legal names / EINs** are placeholders — set them in **Settings → Entities**.
 
-## Out of scope (Phase 1)
+## Out of scope (still upcoming)
 
-GPS tracking, geofencing, route polylines, automatic categorization; fleet maintenance scheduling
-and automated reminders; the full nine-role permission set. (Upcoming-expiration dates are *shown*
-on the Vehicles page, but no reminders are sent.)
+- **Native GPS capture** — the schema and trip fields are ready, but automatic trip recording,
+  live route polylines, and on-device geofencing require the Capacitor native app (not yet packaged).
+- **Automated reminders/notifications** — expirations and maintenance-due are *surfaced* in-app
+  (dashboard, badges), but no emails/push are sent.
+- Residents/appointments/funding-source tracking; OCR; accounting, payroll, or banking integrations;
+  incident reporting.
 
 ---
 

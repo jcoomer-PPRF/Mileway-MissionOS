@@ -18,7 +18,7 @@ import { TripForm } from '@/components/forms/TripForm';
 import type { TripDetail } from '@/types/db';
 
 export function TripsPage() {
-  const { profile, canWrite, isAdmin } = useAuth();
+  const { profile, canWrite, canEditAll } = useAuth();
   const { data: trips, isLoading } = useTripDetails();
   const { create, update, remove } = useTripMutations();
 
@@ -26,7 +26,7 @@ export function TripsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<TripDetail | null>(null);
 
-  const canEdit = (t: TripDetail) => isAdmin || t.created_by === profile?.id;
+  const canEdit = (t: TripDetail) => canEditAll || t.created_by === profile?.id;
 
   const filtered = useMemo(
     () => (trips ?? []).filter((t) => entityFilter === 'all' || t.entity_id === entityFilter),
@@ -98,7 +98,7 @@ export function TripsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile?.id, isAdmin],
+    [profile?.id, canEditAll],
   );
 
   return (
@@ -147,6 +147,9 @@ export function TripsPage() {
                   distance_miles: editing.distance_miles,
                   destination: editing.destination,
                   notes: editing.notes,
+                  start_location_id: editing.start_location_id,
+                  end_location_id: editing.end_location_id,
+                  auto_categorized: editing.auto_categorized,
                 }
               : undefined
           }

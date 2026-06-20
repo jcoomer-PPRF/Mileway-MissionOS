@@ -30,7 +30,7 @@ export function useUserMutations() {
       input,
     }: {
       id: string;
-      input: Partial<Pick<Profile, 'role' | 'is_active' | 'default_entity_id' | 'full_name'>>;
+      input: Partial<Pick<Profile, 'role' | 'is_active' | 'default_entity_id' | 'full_name' | 'job_title_id'>>;
     }) => {
       const { error } = await supabase.from('profiles').update(input).eq('id', id);
       if (error) throw error;
@@ -40,4 +40,4 @@ export function useUserMutations() {
   return { update };
 }
 
-export const ALL_ROLES: UserRole[] = ['administrator', 'staff', 'auditor'];
+export const ALL_ROLES: UserRole[] = ['owner', 'manager', 'contributor', 'accountant', 'auditor'];

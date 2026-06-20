@@ -28,6 +28,9 @@ export interface TripInput {
   distance_miles: number;
   destination: string | null;
   notes: string | null;
+  start_location_id: string | null;
+  end_location_id: string | null;
+  auto_categorized: boolean;
 }
 
 export function useTripMutations() {

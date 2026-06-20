@@ -3,7 +3,8 @@ import { Pencil } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ALL_ROLES, useUsers, useUserMutations } from '@/hooks/useUsers';
 import { useEntities } from '@/hooks/useReference';
-import { ROLE_LABELS } from '@/lib/constants';
+import { useJobTitles } from '@/hooks/useLookups';
+import { ROLE_DESCRIPTIONS, ROLE_LABELS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -17,10 +18,12 @@ export function UsersSettings() {
   const { profile: me } = useAuth();
   const { data: users, isLoading } = useUsers();
   const { data: entities } = useEntities();
+  const { data: jobTitles } = useJobTitles();
   const { update } = useUserMutations();
   const [editing, setEditing] = useState<Profile | null>(null);
 
   const entityName = (id: string | null) => (id ? entities?.find((e) => e.id === id)?.name ?? '—' : '—');
+  const jobTitleName = (id: string | null) => (id ? jobTitles?.find((j) => j.id === id)?.name ?? '—' : '—');
 
   if (isLoading) return <PageLoader />;
 
@@ -32,6 +35,7 @@ export function UsersSettings() {
             <th className="px-4 py-2">Name</th>
             <th className="px-4 py-2">Email</th>
             <th className="px-4 py-2">Role</th>
+            <th className="px-4 py-2">Job title</th>
             <th className="px-4 py-2">Default entity</th>
             <th className="px-4 py-2">Status</th>
             <th className="px-4 py-2" />
@@ -43,6 +47,7 @@ export function UsersSettings() {
               <td className="px-4 py-2 font-medium text-slate-800">{u.full_name || '—'}</td>
               <td className="px-4 py-2 text-slate-600">{u.email}</td>
               <td className="px-4 py-2">{ROLE_LABELS[u.role]}</td>
+              <td className="px-4 py-2 text-slate-600">{jobTitleName(u.job_title_id)}</td>
               <td className="px-4 py-2 text-slate-600">{entityName(u.default_entity_id)}</td>
               <td className="px-4 py-2">
                 {u.is_active ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Inactive</Badge>}
@@ -82,25 +87,34 @@ function EditUserModal({
   user: Profile;
   isSelf: boolean;
   onClose: () => void;
-  onSave: (input: Partial<Pick<Profile, 'role' | 'is_active' | 'default_entity_id'>>) => Promise<void>;
+  onSave: (
+    input: Partial<Pick<Profile, 'role' | 'is_active' | 'default_entity_id' | 'job_title_id'>>,
+  ) => Promise<void>;
 }) {
   const { data: entities } = useEntities();
+  const { data: jobTitles } = useJobTitles();
   const [role, setRole] = useState<UserRole>(user.role);
   const [active, setActive] = useState(user.is_active);
   const [defaultEntity, setDefaultEntity] = useState(user.default_entity_id ?? '');
+  const [jobTitle, setJobTitle] = useState(user.job_title_id ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (isSelf && role !== 'administrator') {
-      if (!window.confirm('You are changing your own role away from Administrator. You may lose admin access. Continue?'))
+    if (isSelf && role !== 'owner') {
+      if (!window.confirm('You are changing your own role away from Owner. You may lose owner access. Continue?'))
         return;
     }
     setError(null);
     setBusy(true);
     try {
-      await onSave({ role, is_active: active, default_entity_id: defaultEntity || null });
+      await onSave({
+        role,
+        is_active: active,
+        default_entity_id: defaultEntity || null,
+        job_title_id: jobTitle || null,
+      });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update user');
@@ -112,11 +126,21 @@ function EditUserModal({
   return (
     <Modal open onClose={onClose} title={`Edit ${user.full_name || user.email}`}>
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Role" required>
+        <Field label="Role" required hint={ROLE_DESCRIPTIONS[role]}>
           <Select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
             {ALL_ROLES.map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABELS[r]}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Job title" hint="Display only — does not affect permissions.">
+          <Select value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}>
+            <option value="">None</option>
+            {(jobTitles ?? []).map((j) => (
+              <option key={j.id} value={j.id}>
+                {j.name}
               </option>
             ))}
           </Select>

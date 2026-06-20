@@ -19,7 +19,7 @@ import { VehicleForm } from '@/components/forms/VehicleForm';
 import type { Entity, Vehicle } from '@/types/db';
 
 export function VehiclesPage() {
-  const { profile, canWrite, isAdmin } = useAuth();
+  const { profile, canWrite, canEditAll } = useAuth();
   const { data: vehicles, isLoading } = useVehicles();
   const { data: entities } = useEntities();
   const { create, update, remove } = useVehicleMutations();
@@ -34,7 +34,7 @@ export function VehiclesPage() {
     return m;
   }, [entities]);
 
-  const canEdit = (v: Vehicle) => isAdmin || v.created_by === profile?.id;
+  const canEdit = (v: Vehicle) => canEditAll || v.created_by === profile?.id;
   const filtered = useMemo(
     () => (vehicles ?? []).filter((v) => entityFilter === 'all' || v.entity_id === entityFilter),
     [vehicles, entityFilter],
@@ -124,7 +124,7 @@ export function VehiclesPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entityMap, profile?.id, isAdmin],
+    [entityMap, profile?.id, canEditAll],
   );
 
   return (

@@ -21,7 +21,7 @@ import { ExpenseForm } from '@/components/forms/ExpenseForm';
 import type { ExpenseDetail } from '@/types/db';
 
 export function ExpensesPage() {
-  const { profile, canWrite, isAdmin } = useAuth();
+  const { profile, canWrite, canEditAll } = useAuth();
   const { data: expenses, isLoading } = useExpenseDetails();
   const { create, update, remove } = useExpenseMutations();
 
@@ -29,7 +29,7 @@ export function ExpensesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<ExpenseDetail | null>(null);
 
-  const canEdit = (x: ExpenseDetail) => isAdmin || x.created_by === profile?.id;
+  const canEdit = (x: ExpenseDetail) => canEditAll || x.created_by === profile?.id;
   const filtered = useMemo(
     () => (expenses ?? []).filter((x) => entityFilter === 'all' || x.entity_id === entityFilter),
     [expenses, entityFilter],
@@ -104,7 +104,7 @@ export function ExpensesPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile?.id, isAdmin],
+    [profile?.id, canEditAll],
   );
 
   return (

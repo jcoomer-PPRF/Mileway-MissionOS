@@ -15,9 +15,12 @@ interface AuthState {
   profile: Profile | null;
   loading: boolean;
   role: UserRole | null;
-  isAdmin: boolean;
+  isOwner: boolean; // full access incl. settings + user management
+  canEditAll: boolean; // owner or manager — edit any operational record
+  canWrite: boolean; // owner, manager, or contributor — create records
+  canReadFinancials: boolean; // owner, manager, accountant, or auditor
   isAuditor: boolean;
-  canWrite: boolean; // administrator or staff
+  isAccountant: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (
     email: string,
@@ -82,9 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       loading,
       role: profile?.role ?? null,
-      isAdmin: profile?.role === 'administrator',
+      isOwner: profile?.role === 'owner',
+      canEditAll: profile?.role === 'owner' || profile?.role === 'manager',
+      canWrite:
+        profile?.role === 'owner' || profile?.role === 'manager' || profile?.role === 'contributor',
+      canReadFinancials:
+        profile?.role === 'owner' ||
+        profile?.role === 'manager' ||
+        profile?.role === 'accountant' ||
+        profile?.role === 'auditor',
       isAuditor: profile?.role === 'auditor',
-      canWrite: profile?.role === 'administrator' || profile?.role === 'staff',
+      isAccountant: profile?.role === 'accountant',
       async signInWithEmail(email, password) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         return { error: error?.message ?? null };

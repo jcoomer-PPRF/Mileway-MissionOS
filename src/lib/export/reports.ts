@@ -1,7 +1,7 @@
 import { ENTITY_TYPE_LABELS, RATE_TYPE_LABELS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
 import type { ColumnSpec } from './csv';
-import type { Entity, ExpenseDetail, TripDetail, Vehicle } from '@/types/db';
+import type { Entity, ExpenseDetail, MaintenanceRecord, TripDetail, Vehicle } from '@/types/db';
 
 export interface ReportTable {
   columns: ColumnSpec[];
@@ -137,4 +137,39 @@ export function buildEntityMileageSummary(trips: TripDetail[], entities: Entity[
     };
   });
   return { columns: ENTITY_SUMMARY_COLUMNS, rows };
+}
+
+// ---------------------------------------------------------------------------
+// Maintenance report
+// ---------------------------------------------------------------------------
+const MAINTENANCE_COLUMNS: ColumnSpec[] = [
+  { key: 'date', label: 'Date' },
+  { key: 'entity', label: 'Entity' },
+  { key: 'vehicle', label: 'Vehicle' },
+  { key: 'service', label: 'Service' },
+  { key: 'odometer', label: 'Odometer' },
+  { key: 'cost', label: 'Cost ($)' },
+  { key: 'vendor', label: 'Vendor' },
+  { key: 'notes', label: 'Notes' },
+];
+
+export function buildMaintenanceReport(
+  records: MaintenanceRecord[],
+  lookups: {
+    entityName: (id: string) => string;
+    vehicleLabel: (id: string) => string;
+    typeName: (id: string) => string;
+  },
+): ReportTable {
+  const rows = records.map((r) => ({
+    date: formatDate(r.service_date),
+    entity: lookups.entityName(r.entity_id),
+    vehicle: lookups.vehicleLabel(r.vehicle_id),
+    service: lookups.typeName(r.maintenance_type_id),
+    odometer: r.odometer_at_service ?? '',
+    cost: r.cost ?? '',
+    vendor: r.vendor ?? '',
+    notes: r.notes ?? '',
+  }));
+  return { columns: MAINTENANCE_COLUMNS, rows };
 }

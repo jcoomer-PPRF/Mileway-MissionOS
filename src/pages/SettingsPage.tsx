@@ -6,12 +6,22 @@ import { TripCategoriesSettings } from '@/components/settings/TripCategoriesSett
 import { ExpenseCategoriesSettings } from '@/components/settings/ExpenseCategoriesSettings';
 import { MileageRatesSettings } from '@/components/settings/MileageRatesSettings';
 import { UsersSettings } from '@/components/settings/UsersSettings';
+import {
+  DocumentTypesSettings,
+  JobTitlesSettings,
+  LocationTypesSettings,
+  MaintenanceTypesSettings,
+} from '@/components/settings/LookupSettings';
 
 const TABS = [
   { id: 'entities', label: 'Entities' },
   { id: 'trip_categories', label: 'Trip categories' },
   { id: 'expense_categories', label: 'Expense categories' },
   { id: 'rates', label: 'Mileage rates' },
+  { id: 'location_types', label: 'Location types' },
+  { id: 'maintenance_types', label: 'Maintenance types' },
+  { id: 'document_types', label: 'Document types' },
+  { id: 'job_titles', label: 'Job titles' },
   { id: 'users', label: 'Users' },
 ] as const;
 
@@ -45,6 +55,10 @@ export function SettingsPage() {
       {tab === 'trip_categories' && <TripCategoriesSettings />}
       {tab === 'expense_categories' && <ExpenseCategoriesSettings />}
       {tab === 'rates' && <MileageRatesSettings />}
+      {tab === 'location_types' && <LocationTypesSettings />}
+      {tab === 'maintenance_types' && <MaintenanceTypesSettings />}
+      {tab === 'document_types' && <DocumentTypesSettings />}
+      {tab === 'job_titles' && <JobTitlesSettings />}
       {tab === 'users' && <UsersSettings />}
     </div>
   );
