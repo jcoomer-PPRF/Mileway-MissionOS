@@ -395,3 +395,5 @@ exception when others then
   raise notice 'PASS: last-active-owner demotion refused (%)', sqlerrm;
 end $$;
 rollback;
+
+\echo MATRIX_COMPLETE

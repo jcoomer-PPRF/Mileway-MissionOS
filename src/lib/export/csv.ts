@@ -16,7 +16,10 @@ export function triggerDownload(blob: Blob, filename: string): void {
 
 function escapeCell(value: unknown): string {
   const s = value == null ? '' : String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  // Keep real numbers numeric; user-controlled text must not become a formula
+  // when a report is opened by Excel or another spreadsheet application.
+  const safe = typeof value === 'string' && /^[\s\u0000-\u001f]*[=+\-@]/.test(s) ? `'${s}` : s;
+  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
 export function toCSV(rows: Record<string, unknown>[], columns: ColumnSpec[]): string {
@@ -25,7 +28,11 @@ export function toCSV(rows: Record<string, unknown>[], columns: ColumnSpec[]): s
   return `${head}\n${body}`;
 }
 
-export function downloadCSV(filename: string, rows: Record<string, unknown>[], columns: ColumnSpec[]): void {
+export function downloadCSV(
+  filename: string,
+  rows: Record<string, unknown>[],
+  columns: ColumnSpec[],
+): void {
   const csv = toCSV(rows, columns);
   triggerDownload(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), filename);
 }

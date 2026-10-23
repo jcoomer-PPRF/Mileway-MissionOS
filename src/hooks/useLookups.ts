@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/pagination';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { DocumentType, JobTitle, LocationType, MaintenanceType } from '@/types/db';
@@ -13,11 +14,19 @@ export interface KeyedLookupInput {
 function useKeyedList<T>(table: string) {
   return useQuery({
     queryKey: [table],
-    queryFn: async (): Promise<T[]> => {
-      const { data, error } = await supabase.from(table).select('*').order('sort_order').order('name');
-      if (error) throw error;
-      return data as T[];
-    },
+    queryFn: async ({ signal }): Promise<T[]> =>
+      fetchAllRows<T>(
+        (from, to) =>
+          supabase
+            .from(table)
+            .select('*', { count: 'exact' })
+            .order('sort_order')
+            .order('name')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -58,11 +67,19 @@ export interface JobTitleInput {
 export function useJobTitles() {
   return useQuery({
     queryKey: ['job_titles'],
-    queryFn: async (): Promise<JobTitle[]> => {
-      const { data, error } = await supabase.from('job_titles').select('*').order('sort_order').order('name');
-      if (error) throw error;
-      return data as JobTitle[];
-    },
+    queryFn: async ({ signal }): Promise<JobTitle[]> =>
+      fetchAllRows<JobTitle>(
+        (from, to) =>
+          supabase
+            .from('job_titles')
+            .select('*', { count: 'exact' })
+            .order('sort_order')
+            .order('name')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -78,7 +95,12 @@ export function useJobTitleMutations() {
   });
   const update = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<JobTitleInput> }) => {
-      const { error } = await supabase.from('job_titles').update(input).eq('id', id);
+      const { error } = await supabase
+        .from('job_titles')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,

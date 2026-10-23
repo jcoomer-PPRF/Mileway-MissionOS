@@ -7,13 +7,13 @@ import { useVehicles } from '@/hooks/useVehicles';
 import { useUsers } from '@/hooks/useUsers';
 import { useDocumentTypes } from '@/hooks/useLookups';
 import {
-  getDocumentUrl,
   useDocuments,
   useDocumentMutations,
   useDocumentsExpiring,
   useDriverCredentials,
   type DocumentInput,
 } from '@/hooks/useDocuments';
+import { downloadDocument } from '@/lib/attachments';
 import { EXPIRATION_WINDOW_DAYS } from '@/lib/constants';
 import { cn, formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -32,8 +32,11 @@ type Tab = 'all' | 'expiring' | 'credentials';
 
 async function openFile(path: string | null) {
   if (!path) return;
-  const url = await getDocumentUrl(path);
-  if (url) window.open(url, '_blank');
+  try {
+    await downloadDocument(path);
+  } catch {
+    window.alert('Could not download the document. Check your access and retry.');
+  }
 }
 
 export function DocumentsPage() {
@@ -61,7 +64,9 @@ export function DocumentsPage() {
   const vehicleLabel = (id: string | null) => {
     if (!id) return null;
     const v = vehicles?.find((x) => x.id === id);
-    return v ? [v.year, v.make, v.model].filter(Boolean).join(' ') || v.license_plate || 'Vehicle' : 'Vehicle';
+    return v
+      ? [v.year, v.make, v.model].filter(Boolean).join(' ') || v.license_plate || 'Vehicle'
+      : 'Vehicle';
   };
   const personName = (id: string | null) => {
     if (!id) return null;
@@ -74,15 +79,26 @@ export function DocumentsPage() {
     return <Badge tone="purple">Organization</Badge>;
   };
 
-  const canEdit = (d: DocumentRow) => canEditAll || d.created_by === profile?.id;
-  const windowExpiring = (expiring.data ?? []).filter((d) => d.days_until_expiration <= EXPIRATION_WINDOW_DAYS);
+  const canEdit = (d: DocumentRow) => canEditAll || (canWrite && d.created_by === profile?.id);
+  const windowExpiring = (expiring.data ?? []).filter(
+    (d) => d.days_until_expiration <= EXPIRATION_WINDOW_DAYS,
+  );
 
   // ---- All documents ----
   const docColumns = useMemo<ColumnDef<DocumentRow>[]>(
     () => [
-      { accessorKey: 'title', header: 'Title', cell: (c) => <span className="font-medium text-slate-800">{c.getValue<string>()}</span> },
+      {
+        accessorKey: 'title',
+        header: 'Title',
+        cell: (c) => <span className="font-medium text-slate-800">{c.getValue<string>()}</span>,
+      },
       { id: 'type', header: 'Type', cell: (c) => typeName(c.row.original.document_type_id) },
-      { id: 'scope', header: 'Attached to', enableSorting: false, cell: (c) => scopeBadge(c.row.original) },
+      {
+        id: 'scope',
+        header: 'Attached to',
+        enableSorting: false,
+        cell: (c) => scopeBadge(c.row.original),
+      },
       {
         id: 'entity',
         header: 'Entity',
@@ -91,7 +107,11 @@ export function DocumentsPage() {
           return e ? <EntityBadge name={e.name} isPrimary={e.is_primary} /> : '—';
         },
       },
-      { accessorKey: 'expiration_date', header: 'Expires', cell: (c) => <ExpirationBadge date={c.getValue<string | null>()} /> },
+      {
+        accessorKey: 'expiration_date',
+        header: 'Expires',
+        cell: (c) => <ExpirationBadge date={c.getValue<string | null>()} />,
+      },
       {
         id: 'file',
         header: 'File',
@@ -99,7 +119,7 @@ export function DocumentsPage() {
         cell: (c) =>
           c.row.original.file_path ? (
             <Button variant="ghost" size="sm" onClick={() => openFile(c.row.original.file_path)}>
-              <FileText className="h-4 w-4" /> View
+              <FileText className="h-4 w-4" /> Download
             </Button>
           ) : (
             <span className="text-slate-400">—</span>
@@ -112,14 +132,23 @@ export function DocumentsPage() {
         cell: (c) =>
           canEdit(c.row.original) ? (
             <div className="flex justify-end gap-1">
-              <Button variant="ghost" size="icon" onClick={() => { setEditing(c.row.original); setModalOpen(true); }} aria-label="Edit">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditing(c.row.original);
+                  setModalOpen(true);
+                }}
+                aria-label="Edit"
+              >
                 <Pencil className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
-                  if (window.confirm('Delete this document?')) await remove.mutateAsync(c.row.original.id);
+                  if (window.confirm('Delete this document?'))
+                    await remove.mutateAsync(c.row.original.id);
                 }}
                 aria-label="Delete"
               >
@@ -130,7 +159,7 @@ export function DocumentsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [types, entities, vehicles, users, profile?.id, canEditAll],
+    [types, entities, vehicles, users, profile?.id, canEditAll, canWrite],
   );
 
   // ---- Expiring ----
@@ -148,13 +177,26 @@ export function DocumentsPage() {
               ? `Vehicle: ${c.row.original.vehicle_label}`
               : 'Organization',
       },
-      { accessorKey: 'expiration_date', header: 'Expires', cell: (c) => <ExpirationBadge date={c.getValue<string>()} /> },
+      {
+        accessorKey: 'expiration_date',
+        header: 'Expires',
+        cell: (c) => <ExpirationBadge date={c.getValue<string>()} />,
+      },
       {
         accessorKey: 'days_until_expiration',
         header: 'Days',
         cell: (c) => {
           const d = c.getValue<number>();
-          return <span className={cn('tabular-nums', d < 0 ? 'text-red-600' : d <= 14 ? 'text-amber-600' : 'text-slate-500')}>{d}</span>;
+          return (
+            <span
+              className={cn(
+                'tabular-nums',
+                d < 0 ? 'text-red-600' : d <= 14 ? 'text-amber-600' : 'text-slate-500',
+              )}
+            >
+              {d}
+            </span>
+          );
         },
       },
     ],
@@ -167,8 +209,16 @@ export function DocumentsPage() {
       { id: 'person', header: 'Person', accessorFn: (r) => r.profile_name || r.profile_email },
       { accessorKey: 'document_type_name', header: 'Credential' },
       { accessorKey: 'title', header: 'Title' },
-      { accessorKey: 'issued_date', header: 'Issued', cell: (c) => formatDate(c.getValue<string | null>()) },
-      { accessorKey: 'expiration_date', header: 'Expires', cell: (c) => <ExpirationBadge date={c.getValue<string | null>()} /> },
+      {
+        accessorKey: 'issued_date',
+        header: 'Issued',
+        cell: (c) => formatDate(c.getValue<string | null>()),
+      },
+      {
+        accessorKey: 'expiration_date',
+        header: 'Expires',
+        cell: (c) => <ExpirationBadge date={c.getValue<string | null>()} />,
+      },
       {
         id: 'file',
         header: 'File',
@@ -176,7 +226,7 @@ export function DocumentsPage() {
         cell: (c) =>
           c.row.original.file_path ? (
             <Button variant="ghost" size="sm" onClick={() => openFile(c.row.original.file_path)}>
-              <FileText className="h-4 w-4" /> View
+              <FileText className="h-4 w-4" /> Download
             </Button>
           ) : (
             <span className="text-slate-400">—</span>
@@ -188,7 +238,10 @@ export function DocumentsPage() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'all', label: 'All documents' },
-    { id: 'expiring', label: windowExpiring.length > 0 ? `Expiring (${windowExpiring.length})` : 'Expiring' },
+    {
+      id: 'expiring',
+      label: windowExpiring.length > 0 ? `Expiring (${windowExpiring.length})` : 'Expiring',
+    },
     { id: 'credentials', label: 'Driver credentials' },
   ];
 
@@ -199,7 +252,12 @@ export function DocumentsPage() {
         subtitle="Organization, vehicle, and driver-credential files with expiration tracking."
         actions={
           canWrite && (
-            <Button onClick={() => { setEditing(null); setModalOpen(true); }}>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setModalOpen(true);
+              }}
+            >
               <Plus className="h-4 w-4" /> Add document
             </Button>
           )
@@ -213,7 +271,9 @@ export function DocumentsPage() {
             onClick={() => setTab(t.id)}
             className={cn(
               '-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
-              tab === t.id ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700',
+              tab === t.id
+                ? 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-slate-500 hover:text-slate-700',
             )}
           >
             {t.label}
@@ -223,7 +283,15 @@ export function DocumentsPage() {
 
       <Card>
         {tab === 'all' &&
-          (docs.isLoading ? <PageLoader /> : <DataTable columns={docColumns} data={docs.data ?? []} emptyMessage="No documents yet." />)}
+          (docs.isLoading ? (
+            <PageLoader />
+          ) : (
+            <DataTable
+              columns={docColumns}
+              data={docs.data ?? []}
+              emptyMessage="No documents yet."
+            />
+          ))}
         {tab === 'expiring' &&
           (expiring.isLoading ? (
             <PageLoader />
@@ -239,7 +307,11 @@ export function DocumentsPage() {
           (credentials.isLoading ? (
             <PageLoader />
           ) : (
-            <DataTable columns={credColumns} data={credentials.data ?? []} emptyMessage="No driver credentials on file." />
+            <DataTable
+              columns={credColumns}
+              data={credentials.data ?? []}
+              emptyMessage="No driver credentials on file."
+            />
           ))}
       </Card>
 

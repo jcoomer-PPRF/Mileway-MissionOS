@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/pagination';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { SavedLocation } from '@/types/db';
@@ -5,15 +6,19 @@ import type { SavedLocation } from '@/types/db';
 export function useSavedLocations() {
   return useQuery({
     queryKey: ['saved_locations'],
-    queryFn: async (): Promise<SavedLocation[]> => {
-      const { data, error } = await supabase
-        .from('saved_locations')
-        .select('*')
-        .order('is_active', { ascending: false })
-        .order('name');
-      if (error) throw error;
-      return data as SavedLocation[];
-    },
+    queryFn: async ({ signal }): Promise<SavedLocation[]> =>
+      fetchAllRows<SavedLocation>(
+        (from, to) =>
+          supabase
+            .from('saved_locations')
+            .select('*', { count: 'exact' })
+            .order('is_active', { ascending: false })
+            .order('name')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -44,14 +49,24 @@ export function useSavedLocationMutations() {
   });
   const update = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<SavedLocationInput> }) => {
-      const { error } = await supabase.from('saved_locations').update(input).eq('id', id);
+      const { error } = await supabase
+        .from('saved_locations')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('saved_locations').delete().eq('id', id);
+      const { error } = await supabase
+        .from('saved_locations')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,

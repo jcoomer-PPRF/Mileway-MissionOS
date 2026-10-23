@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/pagination';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Entity, ExpenseCategory, IrsRateType, MileageRate, TripCategory } from '@/types/db';
@@ -6,15 +7,19 @@ import type { Entity, ExpenseCategory, IrsRateType, MileageRate, TripCategory } 
 export function useEntities() {
   return useQuery({
     queryKey: ['entities'],
-    queryFn: async (): Promise<Entity[]> => {
-      const { data, error } = await supabase
-        .from('entities')
-        .select('*')
-        .order('is_primary', { ascending: false })
-        .order('name');
-      if (error) throw error;
-      return data as Entity[];
-    },
+    queryFn: async ({ signal }): Promise<Entity[]> =>
+      fetchAllRows<Entity>(
+        (from, to) =>
+          supabase
+            .from('entities')
+            .select('*', { count: 'exact' })
+            .order('is_primary', { ascending: false })
+            .order('name')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -29,7 +34,12 @@ export function useEntityMutations() {
       id: string;
       input: Partial<Pick<Entity, 'name' | 'legal_name' | 'ein'>>;
     }) => {
-      const { error } = await supabase.from('entities').update(input).eq('id', id);
+      const { error } = await supabase
+        .from('entities')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -41,15 +51,19 @@ export function useEntityMutations() {
 export function useTripCategories() {
   return useQuery({
     queryKey: ['trip_categories'],
-    queryFn: async (): Promise<TripCategory[]> => {
-      const { data, error } = await supabase
-        .from('trip_categories')
-        .select('*')
-        .order('sort_order')
-        .order('name');
-      if (error) throw error;
-      return data as TripCategory[];
-    },
+    queryFn: async ({ signal }): Promise<TripCategory[]> =>
+      fetchAllRows<TripCategory>(
+        (from, to) =>
+          supabase
+            .from('trip_categories')
+            .select('*', { count: 'exact' })
+            .order('sort_order')
+            .order('name')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -64,6 +78,7 @@ export function useTripCategoryMutations() {
   const qc = useQueryClient();
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['trip_categories'] });
+    qc.invalidateQueries({ queryKey: ['dashboard'] });
     qc.invalidateQueries({ queryKey: ['trip_details'] });
   };
   const create = useMutation({
@@ -75,7 +90,12 @@ export function useTripCategoryMutations() {
   });
   const update = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<TripCategoryInput> }) => {
-      const { error } = await supabase.from('trip_categories').update(input).eq('id', id);
+      const { error } = await supabase
+        .from('trip_categories')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -87,15 +107,19 @@ export function useTripCategoryMutations() {
 export function useExpenseCategories() {
   return useQuery({
     queryKey: ['expense_categories'],
-    queryFn: async (): Promise<ExpenseCategory[]> => {
-      const { data, error } = await supabase
-        .from('expense_categories')
-        .select('*')
-        .order('sort_order')
-        .order('name');
-      if (error) throw error;
-      return data as ExpenseCategory[];
-    },
+    queryFn: async ({ signal }): Promise<ExpenseCategory[]> =>
+      fetchAllRows<ExpenseCategory>(
+        (from, to) =>
+          supabase
+            .from('expense_categories')
+            .select('*', { count: 'exact' })
+            .order('sort_order')
+            .order('name')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -121,7 +145,12 @@ export function useExpenseCategoryMutations() {
   });
   const update = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<ExpenseCategoryInput> }) => {
-      const { error } = await supabase.from('expense_categories').update(input).eq('id', id);
+      const { error } = await supabase
+        .from('expense_categories')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -133,15 +162,19 @@ export function useExpenseCategoryMutations() {
 export function useMileageRates() {
   return useQuery({
     queryKey: ['mileage_rates'],
-    queryFn: async (): Promise<MileageRate[]> => {
-      const { data, error } = await supabase
-        .from('mileage_rates')
-        .select('*')
-        .order('effective_date', { ascending: false })
-        .order('rate_type');
-      if (error) throw error;
-      return data as MileageRate[];
-    },
+    queryFn: async ({ signal }): Promise<MileageRate[]> =>
+      fetchAllRows<MileageRate>(
+        (from, to) =>
+          supabase
+            .from('mileage_rates')
+            .select('*', { count: 'exact' })
+            .order('effective_date', { ascending: false })
+            .order('rate_type')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -167,14 +200,24 @@ export function useMileageRateMutations() {
   });
   const update = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<MileageRateInput> }) => {
-      const { error } = await supabase.from('mileage_rates').update(input).eq('id', id);
+      const { error } = await supabase
+        .from('mileage_rates')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('mileage_rates').delete().eq('id', id);
+      const { error } = await supabase
+        .from('mileage_rates')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,

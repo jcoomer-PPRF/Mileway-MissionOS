@@ -1,19 +1,28 @@
+import { fetchAllRows, applyRecordFilters, type RecordFilters } from '@/lib/pagination';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { MaintenanceDue, MaintenanceRecord, MaintenanceSchedule } from '@/types/db';
 
 // ---- Service history ----
-export function useMaintenanceRecords() {
+export function useMaintenanceRecords(filters: RecordFilters = {}) {
   return useQuery({
-    queryKey: ['maintenance_records'],
-    queryFn: async (): Promise<MaintenanceRecord[]> => {
-      const { data, error } = await supabase
-        .from('maintenance_records')
-        .select('*')
-        .order('service_date', { ascending: false });
-      if (error) throw error;
-      return data as MaintenanceRecord[];
-    },
+    queryKey: ['maintenance_records', filters],
+    queryFn: async ({ signal }): Promise<MaintenanceRecord[]> =>
+      fetchAllRows<MaintenanceRecord>(
+        (from, to) =>
+          applyRecordFilters(
+            supabase
+              .from('maintenance_records')
+              .select('*', { count: 'exact' })
+              .order('service_date', { ascending: false })
+              .order('id'),
+            filters,
+            'service_date',
+          )
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -45,14 +54,24 @@ export function useMaintenanceRecordMutations() {
   });
   const update = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<MaintenanceRecordInput> }) => {
-      const { error } = await supabase.from('maintenance_records').update(input).eq('id', id);
+      const { error } = await supabase
+        .from('maintenance_records')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('maintenance_records').delete().eq('id', id);
+      const { error } = await supabase
+        .from('maintenance_records')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -64,14 +83,18 @@ export function useMaintenanceRecordMutations() {
 export function useMaintenanceSchedules() {
   return useQuery({
     queryKey: ['maintenance_schedules'],
-    queryFn: async (): Promise<MaintenanceSchedule[]> => {
-      const { data, error } = await supabase
-        .from('maintenance_schedules')
-        .select('*')
-        .order('is_active', { ascending: false });
-      if (error) throw error;
-      return data as MaintenanceSchedule[];
-    },
+    queryFn: async ({ signal }): Promise<MaintenanceSchedule[]> =>
+      fetchAllRows<MaintenanceSchedule>(
+        (from, to) =>
+          supabase
+            .from('maintenance_schedules')
+            .select('*', { count: 'exact' })
+            .order('is_active', { ascending: false })
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -102,14 +125,24 @@ export function useMaintenanceScheduleMutations() {
   });
   const update = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<MaintenanceScheduleInput> }) => {
-      const { error } = await supabase.from('maintenance_schedules').update(input).eq('id', id);
+      const { error } = await supabase
+        .from('maintenance_schedules')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('maintenance_schedules').delete().eq('id', id);
+      const { error } = await supabase
+        .from('maintenance_schedules')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -121,10 +154,16 @@ export function useMaintenanceScheduleMutations() {
 export function useMaintenanceDue() {
   return useQuery({
     queryKey: ['maintenance_due'],
-    queryFn: async (): Promise<MaintenanceDue[]> => {
-      const { data, error } = await supabase.from('v_maintenance_due').select('*');
-      if (error) throw error;
-      return data as MaintenanceDue[];
-    },
+    queryFn: async ({ signal }): Promise<MaintenanceDue[]> =>
+      fetchAllRows<MaintenanceDue>(
+        (from, to) =>
+          supabase
+            .from('v_maintenance_due')
+            .select('*', { count: 'exact' })
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }

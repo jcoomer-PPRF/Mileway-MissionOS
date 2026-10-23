@@ -90,7 +90,11 @@ export function MaintenancePage() {
           const parts: string[] = [];
           if (r.miles_remaining != null) parts.push(`${formatNumber(r.miles_remaining, 0)} mi`);
           if (r.days_remaining != null) parts.push(`${r.days_remaining} d`);
-          return <span className={cn('tabular-nums', r.is_due && 'font-medium text-red-600')}>{parts.join(' · ') || '—'}</span>;
+          return (
+            <span className={cn('tabular-nums', r.is_due && 'font-medium text-red-600')}>
+              {parts.join(' · ') || '—'}
+            </span>
+          );
         },
       },
     ],
@@ -98,10 +102,15 @@ export function MaintenancePage() {
   );
 
   // ---- History columns ----
-  const recordCanEdit = (r: MaintenanceRecord) => canEditAll || r.created_by === profile?.id;
+  const recordCanEdit = (r: MaintenanceRecord) =>
+    canEditAll || (canWrite && r.created_by === profile?.id);
   const recordColumns = useMemo<ColumnDef<MaintenanceRecord>[]>(
     () => [
-      { accessorKey: 'service_date', header: 'Date', cell: (c) => formatDate(c.getValue<string>()) },
+      {
+        accessorKey: 'service_date',
+        header: 'Date',
+        cell: (c) => formatDate(c.getValue<string>()),
+      },
       { id: 'vehicle', header: 'Vehicle', cell: (c) => vehicleLabel(c.row.original.vehicle_id) },
       { id: 'type', header: 'Service', cell: (c) => typeName(c.row.original.maintenance_type_id) },
       {
@@ -122,14 +131,23 @@ export function MaintenancePage() {
         cell: (c) =>
           recordCanEdit(c.row.original) ? (
             <div className="flex justify-end gap-1">
-              <Button variant="ghost" size="icon" onClick={() => { setEditRecord(c.row.original); setRecordModal(true); }} aria-label="Edit">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditRecord(c.row.original);
+                  setRecordModal(true);
+                }}
+                aria-label="Edit"
+              >
                 <Pencil className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
-                  if (window.confirm('Delete this service record?')) await recMut.remove.mutateAsync(c.row.original.id);
+                  if (window.confirm('Delete this service record?'))
+                    await recMut.remove.mutateAsync(c.row.original.id);
                 }}
                 aria-label="Delete"
               >
@@ -140,7 +158,7 @@ export function MaintenancePage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [vehicles, types, profile?.id, canEditAll],
+    [vehicles, types, profile?.id, canEditAll, canWrite],
   );
 
   // ---- Schedule columns ----
@@ -166,14 +184,20 @@ export function MaintenancePage() {
           const r = c.row.original;
           const parts: string[] = [];
           if (r.last_service_date) parts.push(formatDate(r.last_service_date));
-          if (r.last_service_odometer != null) parts.push(`${formatNumber(r.last_service_odometer, 0)} mi`);
+          if (r.last_service_odometer != null)
+            parts.push(`${formatNumber(r.last_service_odometer, 0)} mi`);
           return parts.join(' · ') || '—';
         },
       },
       {
         accessorKey: 'is_active',
         header: 'Status',
-        cell: (c) => (c.getValue<boolean>() ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Inactive</Badge>),
+        cell: (c) =>
+          c.getValue<boolean>() ? (
+            <Badge tone="green">Active</Badge>
+          ) : (
+            <Badge tone="gray">Inactive</Badge>
+          ),
       },
       {
         id: 'actions',
@@ -182,14 +206,23 @@ export function MaintenancePage() {
         cell: (c) =>
           canEditAll ? (
             <div className="flex justify-end gap-1">
-              <Button variant="ghost" size="icon" onClick={() => { setEditSchedule(c.row.original); setScheduleModal(true); }} aria-label="Edit">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditSchedule(c.row.original);
+                  setScheduleModal(true);
+                }}
+                aria-label="Edit"
+              >
                 <Pencil className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
-                  if (window.confirm('Delete this schedule?')) await schedMut.remove.mutateAsync(c.row.original.id);
+                  if (window.confirm('Delete this schedule?'))
+                    await schedMut.remove.mutateAsync(c.row.original.id);
                 }}
                 aria-label="Delete"
               >
@@ -216,11 +249,21 @@ export function MaintenancePage() {
         subtitle="Service history, schedules, and what's due across the fleet."
         actions={
           tab === 'history' && canWrite ? (
-            <Button onClick={() => { setEditRecord(null); setRecordModal(true); }}>
+            <Button
+              onClick={() => {
+                setEditRecord(null);
+                setRecordModal(true);
+              }}
+            >
               <Plus className="h-4 w-4" /> Log service
             </Button>
           ) : tab === 'schedules' && canEditAll ? (
-            <Button onClick={() => { setEditSchedule(null); setScheduleModal(true); }}>
+            <Button
+              onClick={() => {
+                setEditSchedule(null);
+                setScheduleModal(true);
+              }}
+            >
               <Plus className="h-4 w-4" /> Add schedule
             </Button>
           ) : null
@@ -234,7 +277,9 @@ export function MaintenancePage() {
             onClick={() => setTab(t.id)}
             className={cn(
               '-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
-              tab === t.id ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700',
+              tab === t.id
+                ? 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-slate-500 hover:text-slate-700',
             )}
           >
             {t.label}
@@ -269,11 +314,19 @@ export function MaintenancePage() {
           (schedules.isLoading ? (
             <PageLoader />
           ) : (
-            <DataTable columns={scheduleColumns} data={schedules.data ?? []} emptyMessage="No schedules yet." />
+            <DataTable
+              columns={scheduleColumns}
+              data={schedules.data ?? []}
+              emptyMessage="No schedules yet."
+            />
           ))}
       </Card>
 
-      <Modal open={recordModal} onClose={() => setRecordModal(false)} title={editRecord ? 'Edit service record' : 'Log service'}>
+      <Modal
+        open={recordModal}
+        onClose={() => setRecordModal(false)}
+        title={editRecord ? 'Edit service record' : 'Log service'}
+      >
         <MaintenanceRecordForm
           initial={editRecord ?? undefined}
           onSubmit={async (values: MaintenanceRecordInput) => {
@@ -285,11 +338,16 @@ export function MaintenancePage() {
         />
       </Modal>
 
-      <Modal open={scheduleModal} onClose={() => setScheduleModal(false)} title={editSchedule ? 'Edit schedule' : 'Add schedule'}>
+      <Modal
+        open={scheduleModal}
+        onClose={() => setScheduleModal(false)}
+        title={editSchedule ? 'Edit schedule' : 'Add schedule'}
+      >
         <MaintenanceScheduleForm
           initial={editSchedule ?? undefined}
           onSubmit={async (values: MaintenanceScheduleInput) => {
-            if (editSchedule) await schedMut.update.mutateAsync({ id: editSchedule.id, input: values });
+            if (editSchedule)
+              await schedMut.update.mutateAsync({ id: editSchedule.id, input: values });
             else await schedMut.create.mutateAsync(values);
             setScheduleModal(false);
           }}

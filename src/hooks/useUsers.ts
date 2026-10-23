@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/pagination';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Profile, UserRole } from '@/types/db';
@@ -5,11 +6,18 @@ import type { Profile, UserRole } from '@/types/db';
 export function useUsers() {
   return useQuery({
     queryKey: ['users'],
-    queryFn: async (): Promise<Profile[]> => {
-      const { data, error } = await supabase.from('profiles').select('*').order('full_name');
-      if (error) throw error;
-      return data as Profile[];
-    },
+    queryFn: async ({ signal }): Promise<Profile[]> =>
+      fetchAllRows<Profile>(
+        (from, to) =>
+          supabase
+            .from('profiles')
+            .select('*', { count: 'exact' })
+            .order('full_name')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -23,43 +31,78 @@ export function useUserMap() {
 
 export function useUserMutations() {
   const qc = useQueryClient();
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['users'] });
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ['users'] });
+    void qc.invalidateQueries({ queryKey: ['auth_access_sync'] });
+  };
   const update = useMutation({
     mutationFn: async ({
       id,
       input,
     }: {
       id: string;
-      input: Partial<Pick<Profile, 'role' | 'default_entity_id' | 'full_name' | 'job_title_id'>>;
+      input: Partial<Pick<Profile, 'role' | 'default_entity_id' | 'full_name' | 'job_title_id'>> & {
+        is_active: boolean;
+      };
     }) => {
-      const { error } = await supabase.from('profiles').update(input).eq('id', id);
-      if (error) throw error;
+      const { is_active, ...fields } = input;
+      return saveAccount(id, is_active, fields);
     },
-    onSuccess: invalidate,
+    onSettled: invalidate,
   });
-  // Activation goes through the set-user-active Edge Function, which flips
-  // is_active as the calling owner AND bans/unbans the Supabase Auth account,
-  // so a deactivated user cannot log in at all — not just read nothing.
-  const setActive = useMutation({
-    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { data, error } = await supabase.functions.invoke('set-user-active', {
-        body: { user_id: id, active },
-      });
-      if (error) {
-        let message = error.message;
-        try {
-          const body = await (error as { context?: Response }).context?.json();
-          if (body?.error) message = body.error;
-        } catch {
-          // keep the default message
-        }
-        throw new Error(message);
-      }
-      if (data?.error) throw new Error(data.error);
+  const retrySync = useMutation({
+    mutationFn: async (id: string) => {
+      return saveAccount(id, undefined, {}, true);
     },
-    onSuccess: invalidate,
+    onSettled: invalidate,
   });
-  return { update, setActive };
+  return { update, retrySync };
+}
+
+async function saveAccount(
+  id: string,
+  active?: boolean,
+  fields: Record<string, unknown> = {},
+  retry = false,
+): Promise<{ pending: boolean }> {
+  const { data, error } = await supabase.functions.invoke('set-user-active', {
+    body: { user_id: id, active, fields, retry },
+  });
+  if (error) {
+    let message = error.message;
+    try {
+      const body = await (error as { context?: Response }).context?.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // keep the default message
+    }
+    throw new Error(message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return { pending: Boolean(data?.pending) };
+}
+
+export interface AccessSync {
+  profile_id: string;
+  desired_active: boolean;
+  revision: number;
+  synced_revision: number;
+}
+export function useAccessSync() {
+  return useQuery({
+    queryKey: ['auth_access_sync'],
+    queryFn: async ({ signal }) =>
+      fetchAllRows<AccessSync>(
+        (from, to) =>
+          supabase
+            .from('auth_access_sync')
+            .select('*', { count: 'exact' })
+            .order('profile_id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
+  });
 }
 
 export const ALL_ROLES: UserRole[] = ['owner', 'manager', 'contributor', 'accountant', 'auditor'];

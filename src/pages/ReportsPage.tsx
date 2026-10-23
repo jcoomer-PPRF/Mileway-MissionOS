@@ -32,19 +32,19 @@ function inRange(date: string, from: string, to: string): boolean {
 }
 
 export function ReportsPage() {
-  const { data: trips, isLoading: l1 } = useTripDetails();
-  const { data: expenses, isLoading: l2 } = useExpenseDetails();
-  const { data: vehicles, isLoading: l3 } = useVehicles();
-  const { data: maintenance, isLoading: l4 } = useMaintenanceRecords();
-  const { data: maintenanceTypes } = useMaintenanceTypes();
-  const { data: entities } = useEntities();
-
   const [entity, setEntity] = useState<string | 'all'>('all');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const filters = { entity, from, to };
+  const { data: trips, isLoading: l1 } = useTripDetails(filters);
+  const { data: expenses, isLoading: l2 } = useExpenseDetails(filters);
+  const { data: vehicles, isLoading: l3 } = useVehicles();
+  const { data: maintenance, isLoading: l4 } = useMaintenanceRecords(filters);
+  const { data: maintenanceTypes, isLoading: l5 } = useMaintenanceTypes();
+  const { data: entities, isLoading: l6 } = useEntities();
 
   const stamp = todayISO();
-  const isLoading = l1 || l2 || l3 || l4;
+  const isLoading = l1 || l2 || l3 || l4 || l5 || l6;
 
   const fTrips = useMemo(
     () =>
@@ -85,9 +85,16 @@ export function ReportsPage() {
   const typeName = (id: string) => maintenanceTypes?.find((t) => t.id === id)?.name ?? '';
 
   const mileageLog = useMemo(() => buildMileageLog(fTrips), [fTrips]);
-  const entitySummary = useMemo(() => buildEntityMileageSummary(fTrips, scopedEntities), [fTrips, scopedEntities]);
+  const entitySummary = useMemo(
+    () => buildEntityMileageSummary(fTrips, scopedEntities),
+    [fTrips, scopedEntities],
+  );
   const expenseReport = useMemo(() => buildExpenseReport(fExpenses), [fExpenses]);
-  const maintenanceReport = buildMaintenanceReport(fMaintenance, { entityName, vehicleLabel, typeName });
+  const maintenanceReport = buildMaintenanceReport(fMaintenance, {
+    entityName,
+    vehicleLabel,
+    typeName,
+  });
 
   function exportFullWorkbook() {
     downloadXLSX(`mileway-export-${stamp}.xlsx`, [
@@ -143,7 +150,13 @@ export function ReportsPage() {
           <ReportSection
             title="IRS-format mileage log"
             table={mileageLog}
-            onCSV={() => downloadCSV(`mileway-irs-mileage-log-${stamp}.csv`, mileageLog.rows, mileageLog.columns)}
+            onCSV={() =>
+              downloadCSV(
+                `mileway-irs-mileage-log-${stamp}.csv`,
+                mileageLog.rows,
+                mileageLog.columns,
+              )
+            }
             onXLSX={() =>
               downloadXLSX(`mileway-irs-mileage-log-${stamp}.xlsx`, [
                 { name: 'Mileage Log', columns: mileageLog.columns, rows: mileageLog.rows },
@@ -153,17 +166,33 @@ export function ReportsPage() {
           <ReportSection
             title="Per-entity mileage summary"
             table={entitySummary}
-            onCSV={() => downloadCSV(`mileway-entity-mileage-${stamp}.csv`, entitySummary.rows, entitySummary.columns)}
+            onCSV={() =>
+              downloadCSV(
+                `mileway-entity-mileage-${stamp}.csv`,
+                entitySummary.rows,
+                entitySummary.columns,
+              )
+            }
             onXLSX={() =>
               downloadXLSX(`mileway-entity-mileage-${stamp}.xlsx`, [
-                { name: 'Entity Mileage', columns: entitySummary.columns, rows: entitySummary.rows },
+                {
+                  name: 'Entity Mileage',
+                  columns: entitySummary.columns,
+                  rows: entitySummary.rows,
+                },
               ])
             }
           />
           <ReportSection
             title="Expense report"
             table={expenseReport}
-            onCSV={() => downloadCSV(`mileway-expenses-${stamp}.csv`, expenseReport.rows, expenseReport.columns)}
+            onCSV={() =>
+              downloadCSV(
+                `mileway-expenses-${stamp}.csv`,
+                expenseReport.rows,
+                expenseReport.columns,
+              )
+            }
             onXLSX={() =>
               downloadXLSX(`mileway-expenses-${stamp}.xlsx`, [
                 { name: 'Expenses', columns: expenseReport.columns, rows: expenseReport.rows },
@@ -173,10 +202,20 @@ export function ReportsPage() {
           <ReportSection
             title="Maintenance report"
             table={maintenanceReport}
-            onCSV={() => downloadCSV(`mileway-maintenance-${stamp}.csv`, maintenanceReport.rows, maintenanceReport.columns)}
+            onCSV={() =>
+              downloadCSV(
+                `mileway-maintenance-${stamp}.csv`,
+                maintenanceReport.rows,
+                maintenanceReport.columns,
+              )
+            }
             onXLSX={() =>
               downloadXLSX(`mileway-maintenance-${stamp}.xlsx`, [
-                { name: 'Maintenance', columns: maintenanceReport.columns, rows: maintenanceReport.rows },
+                {
+                  name: 'Maintenance',
+                  columns: maintenanceReport.columns,
+                  rows: maintenanceReport.rows,
+                },
               ])
             }
           />
@@ -227,7 +266,10 @@ function ReportSection({
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={table.columns.length} className="px-3 py-10 text-center text-slate-400">
+                  <td
+                    colSpan={table.columns.length}
+                    className="px-3 py-10 text-center text-slate-400"
+                  >
                     No data for the selected filters.
                   </td>
                 </tr>

@@ -1,3 +1,5 @@
+import { fetchAllRows } from '@/lib/pagination';
+import { cleanupAttachment } from '@/lib/attachments';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { DocumentExpiring, DocumentRow, DriverCredential } from '@/types/db';
@@ -5,14 +7,18 @@ import type { DocumentExpiring, DocumentRow, DriverCredential } from '@/types/db
 export function useDocuments() {
   return useQuery({
     queryKey: ['documents'],
-    queryFn: async (): Promise<DocumentRow[]> => {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as DocumentRow[];
-    },
+    queryFn: async ({ signal }): Promise<DocumentRow[]> =>
+      fetchAllRows<DocumentRow>(
+        (from, to) =>
+          supabase
+            .from('documents')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
@@ -32,8 +38,8 @@ export interface DocumentInput {
 /**
  * Uploads a file to the private `documents` bucket and returns its path.
  * Person-scoped files go under personal/<profile_id>/ — the storage policies
- * gate reads on that prefix (subject or oversight roles). Everything else is
- * entity-prefixed and readable by all active users.
+ * use the saved document row as the authorization source. Prefixes organize
+ * uploads; they do not determine who can download a saved attachment.
  */
 export async function uploadDocumentFile(
   file: File,
@@ -51,12 +57,6 @@ export async function uploadDocumentFile(
   return path;
 }
 
-export async function getDocumentUrl(path: string): Promise<string | null> {
-  const { data, error } = await supabase.storage.from('documents').createSignedUrl(path, 3600);
-  if (error) return null;
-  return data.signedUrl;
-}
-
 export function useDocumentMutations() {
   const qc = useQueryClient();
   const invalidate = () => {
@@ -67,22 +67,38 @@ export function useDocumentMutations() {
   };
   const create = useMutation({
     mutationFn: async (input: DocumentInput) => {
-      const { error } = await supabase.from('documents').insert(input);
+      const { error } = await supabase.from('documents').insert(input).select('id').single();
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
   const update = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<DocumentInput> }) => {
-      const { error } = await supabase.from('documents').update(input).eq('id', id);
+      const previous = await supabase.from('documents').select('file_path').eq('id', id).single();
+      if (previous.error) throw previous.error;
+      const { error } = await supabase
+        .from('documents')
+        .update(input)
+        .eq('id', id)
+        .select('id')
+        .single();
       if (error) throw error;
+      if (input.file_path !== undefined && input.file_path !== previous.data.file_path) {
+        await cleanupAttachment('documents', previous.data.file_path);
+      }
     },
     onSuccess: invalidate,
   });
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('documents').delete().eq('id', id);
+      const { data, error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id)
+        .select('file_path')
+        .single();
       if (error) throw error;
+      await cleanupAttachment('documents', data.file_path);
     },
     onSuccess: invalidate,
   });
@@ -92,27 +108,35 @@ export function useDocumentMutations() {
 export function useDocumentsExpiring() {
   return useQuery({
     queryKey: ['documents_expiring'],
-    queryFn: async (): Promise<DocumentExpiring[]> => {
-      const { data, error } = await supabase
-        .from('v_documents_expiring')
-        .select('*')
-        .order('expiration_date');
-      if (error) throw error;
-      return data as DocumentExpiring[];
-    },
+    queryFn: async ({ signal }): Promise<DocumentExpiring[]> =>
+      fetchAllRows<DocumentExpiring>(
+        (from, to) =>
+          supabase
+            .from('v_documents_expiring')
+            .select('*', { count: 'exact' })
+            .order('expiration_date')
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }
 
 export function useDriverCredentials() {
   return useQuery({
     queryKey: ['driver_credentials'],
-    queryFn: async (): Promise<DriverCredential[]> => {
-      const { data, error } = await supabase
-        .from('v_driver_credentials')
-        .select('*')
-        .order('expiration_date', { nullsFirst: false });
-      if (error) throw error;
-      return data as DriverCredential[];
-    },
+    queryFn: async ({ signal }): Promise<DriverCredential[]> =>
+      fetchAllRows<DriverCredential>(
+        (from, to) =>
+          supabase
+            .from('v_driver_credentials')
+            .select('*', { count: 'exact' })
+            .order('expiration_date', { nullsFirst: false })
+            .order('id')
+            .range(from, to)
+            .abortSignal(signal),
+        signal,
+      ),
   });
 }

@@ -1,0 +1,39 @@
+name: Verify
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/**', claude/hardening-0011]
+permissions:
+  contents: read
+jobs:
+  build-and-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: test-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: bash supabase/tests/run.sh mileway_ci_test
+      - run: bash supabase/tests/upgrade.sh
+      - run: sh supabase/tests/runner_guard.sh
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

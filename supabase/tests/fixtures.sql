@@ -6,6 +6,11 @@
 -- migration 0011: personal/<profile_id>/<file>. Non-personal files keep the
 -- original <entity_id>/<file> layout.
 
+insert into public.user_invitations(email,role) values
+ ('owner@test.local','owner'),('manager@test.local','contributor'),
+ ('contributor@test.local','contributor'),('accountant@test.local','contributor'),
+ ('auditor@test.local','contributor'),('contributor2@test.local','contributor');
+
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000001', 'owner@test.local');
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000002', 'manager@test.local');
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000003', 'contributor@test.local');
@@ -73,6 +78,9 @@ insert into storage.objects (bucket_id, name, owner)
 insert into storage.objects (bucket_id, name, owner)
   values ('documents', 'personal/00000000-0000-0000-0000-000000000003/license.pdf',
           '00000000-0000-0000-0000-000000000001');
+update public.documents set file_path=(select id::text from public.entities where is_primary)||'/bylaws.pdf' where id='33333333-0000-0000-0000-000000000001';
+update public.documents set file_path='personal/00000000-0000-0000-0000-000000000003/license.pdf' where id='33333333-0000-0000-0000-000000000003';
+update public.documents set file_path='personal/00000000-0000-0000-0000-000000000002/background-check.pdf' where id='33333333-0000-0000-0000-000000000004';
 commit;
 
 -- Manager: a trip.

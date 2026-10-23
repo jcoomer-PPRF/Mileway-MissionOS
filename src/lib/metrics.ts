@@ -1,4 +1,5 @@
 import { VEHICLE_COST_KEYS } from './constants';
+import { todayISO } from './utils';
 import type { ExpenseDetail, TripDetail } from '@/types/db';
 
 export interface EntityBreakdown {
@@ -36,7 +37,10 @@ export function computeDashboard(
   expenses: ExpenseDetail[],
   entityId: string | 'all',
   currentMonthIndex: number,
+  asOfDate: string = todayISO(),
 ): DashboardMetrics {
+  trips = trips.filter((row) => row.trip_date <= asOfDate);
+  expenses = expenses.filter((row) => row.expense_date <= asOfDate);
   const t = entityId === 'all' ? trips : trips.filter((x) => x.entity_id === entityId);
   const e = entityId === 'all' ? expenses : expenses.filter((x) => x.entity_id === entityId);
 
@@ -52,7 +56,9 @@ export function computeDashboard(
     .filter((r) => monthIndex(r.trip_date) === currentMonthIndex)
     .reduce((s, r) => s + Number(r.deduction_amount), 0);
 
-  const fuelCostsYTD = e.filter((x) => x.category_key === 'fuel').reduce((s, x) => s + Number(x.amount), 0);
+  const fuelCostsYTD = e
+    .filter((x) => x.category_key === 'fuel')
+    .reduce((s, x) => s + Number(x.amount), 0);
   const vehicleCostsYTD = e
     .filter((x) => VEHICLE_COST_KEYS.includes(x.category_key))
     .reduce((s, x) => s + Number(x.amount), 0);
@@ -74,7 +80,12 @@ export function computeDashboard(
     byEntityMap.set(r.entity_id, b);
   }
 
-  const monthly = MONTHS.map((m) => ({ month: m, business_miles: 0, total_miles: 0, deduction: 0 }));
+  const monthly = MONTHS.map((m) => ({
+    month: m,
+    business_miles: 0,
+    total_miles: 0,
+    deduction: 0,
+  }));
   for (const r of t) {
     const mi = monthIndex(r.trip_date);
     if (mi < 0 || mi > 11) continue;

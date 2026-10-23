@@ -34,7 +34,7 @@ export function VehiclesPage() {
     return m;
   }, [entities]);
 
-  const canEdit = (v: Vehicle) => canEditAll || v.created_by === profile?.id;
+  const canEdit = (v: Vehicle) => canEditAll || (canWrite && v.created_by === profile?.id);
   const filtered = useMemo(
     () => (vehicles ?? []).filter((v) => entityFilter === 'all' || v.entity_id === entityFilter),
     [vehicles, entityFilter],
@@ -54,7 +54,12 @@ export function VehiclesPage() {
     setModalOpen(false);
   }
   async function handleDelete(v: Vehicle) {
-    if (!window.confirm('Delete this vehicle? Trips and expenses that reference it will block deletion.')) return;
+    if (
+      !window.confirm(
+        'Delete this vehicle? Trips and expenses that reference it will block deletion.',
+      )
+    )
+      return;
     try {
       await remove.mutateAsync(v.id);
     } catch (err) {
@@ -72,7 +77,9 @@ export function VehiclesPage() {
           <div className="flex items-center gap-2">
             <Car className="h-4 w-4 text-slate-400" />
             <span className="font-medium text-slate-800">
-              {[c.row.original.year, c.row.original.make, c.row.original.model].filter(Boolean).join(' ') || '—'}
+              {[c.row.original.year, c.row.original.make, c.row.original.model]
+                .filter(Boolean)
+                .join(' ') || '—'}
             </span>
           </div>
         ),
@@ -104,7 +111,12 @@ export function VehiclesPage() {
       {
         accessorKey: 'is_active',
         header: 'Status',
-        cell: (c) => (c.getValue<boolean>() ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Retired</Badge>),
+        cell: (c) =>
+          c.getValue<boolean>() ? (
+            <Badge tone="green">Active</Badge>
+          ) : (
+            <Badge tone="gray">Retired</Badge>
+          ),
       },
       {
         id: 'actions',
@@ -113,10 +125,20 @@ export function VehiclesPage() {
         cell: (c) =>
           canEdit(c.row.original) ? (
             <div className="flex justify-end gap-1">
-              <Button variant="ghost" size="icon" onClick={() => openEdit(c.row.original)} aria-label="Edit">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openEdit(c.row.original)}
+                aria-label="Edit"
+              >
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => handleDelete(c.row.original)} aria-label="Delete">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(c.row.original)}
+                aria-label="Delete"
+              >
                 <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
             </div>
@@ -124,7 +146,7 @@ export function VehiclesPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entityMap, profile?.id, canEditAll],
+    [entityMap, profile?.id, canEditAll, canWrite],
   );
 
   return (
