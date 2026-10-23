@@ -20,14 +20,15 @@ Never run these scripts against a database containing useful data. SQL uses `ON_
 ## Coverage
 
 - `shim.sql`: minimal Auth users/UID and Storage tables with both legacy `owner` and modern
-  `owner_id`, plus Supabase roles. RLS runs on PostgreSQL; external service plumbing is approximated.
+  `owner_id`, plus Supabase roles and direct default function grants. RLS runs on PostgreSQL; external service plumbing is approximated.
 - `fixtures.sql`: invited fictional users for five tiers, a second contributor, and cross-user
   operational records/files. Owners assign roles through the real trigger/RLS path.
 - `role_matrix.sql`: 60 assertions covering five roles, server creation fields, demotion,
   inactivity, personal files, and last-owner restrictions. The runner requires all 60 passes
   and `MATRIX_COMPLETE`; SQL errors and empty/partial output fail the run.
 - `integrity.sql`: invitation admission, modern/legacy attachment paths and scope changes,
-  current-role file writes, foreign references, identity/reference protections, maintenance,
+  current-role file writes, foreign references, identity/reference protections, hosted function
+  grants and private RPC access, maintenance,
   odometer distance, and durable service-only Auth synchronization.
 - `concurrency.sh`: two real database sessions race owner demotions; exactly one owner remains.
 - `upgrade.sh`: starts with `0001`–`0010`, existing users and a legacy personal file, proves
@@ -60,3 +61,6 @@ Auth/REST/Storage responses and Chromium to cover account switching, report fail
 `.github/workflows/verify.yml` runs these checks, including SQL fresh-install and upgrade
 validation, on pull requests and the configured branches. Local browser mocks are not evidence
 that hosted Supabase APIs or deployed Edge Functions have passed.
+
+Completed hosted validation and the required remaining provider checks are recorded in
+[STAGING_VALIDATION.md](../../STAGING_VALIDATION.md).

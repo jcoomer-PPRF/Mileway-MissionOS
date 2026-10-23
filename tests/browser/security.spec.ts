@@ -197,4 +197,14 @@ test('personal file download authenticates each request without a signed URL', a
     ),
   ).toBe(true);
   expect(requests.some((request) => request.url.includes('/object/sign/'))).toBe(false);
+  const first = requests.find((request) => request.url.includes('/storage/v1/object/documents/'))!;
+  expect(first.url).toContain('cacheNonce=');
+  const secondDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download', exact: true }).click();
+  await secondDownload;
+  const downloads = requests.filter((request) =>
+    request.url.includes('/storage/v1/object/documents/'),
+  );
+  expect(downloads).toHaveLength(2);
+  expect(downloads[0].url).not.toBe(downloads[1].url);
 });

@@ -69,3 +69,6 @@ alter table storage.objects enable row level security;
 grant usage on schema storage to authenticated, anon;
 grant select on storage.buckets to authenticated, anon;
 grant select, insert, update, delete on storage.objects to authenticated;
+
+-- Match hosted direct grants, in addition to PostgreSQL's PUBLIC default.
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;

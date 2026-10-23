@@ -26,3 +26,4 @@ coverage
 # Browser regression artifacts
 playwright-report
 test-results
+supabase/.temp/

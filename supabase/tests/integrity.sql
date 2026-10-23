@@ -204,4 +204,17 @@ update public.documents set file_path=null where id='33333333-0000-0000-0000-000
 with removed as (delete from storage.objects where name like '%/bylaws.pdf' returning id)
 select pg_temp.verify((select count(*)=1 from removed),'unlinked files can be cleaned up through the storage API');
 rollback;
+select pg_temp.verify(not exists (
+  select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname in (
+    'request_user_access','retry_user_access_sync','file_is_unreferenced',
+    'file_identity_matches','can_read_document_file','can_manage_document_file',
+    'is_active_user','is_owner','can_write')
+    and has_function_privilege('anon',p.oid,'execute')
+), 'hosted default grants do not expose private helpers to anonymous callers');
+select pg_temp.verify(not exists (
+  select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.prorettype='trigger'::regtype
+    and has_function_privilege('authenticated',p.oid,'execute')
+), 'trigger functions are not exposed as signed-in RPC endpoints');
 \echo INTEGRITY_COMPLETE

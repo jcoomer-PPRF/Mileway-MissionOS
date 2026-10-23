@@ -14,7 +14,9 @@ export async function cleanupAttachment(bucket: 'documents' | 'receipts', path: 
 /** Authenticate every download rather than issuing a transferable signed URL.
  * Downloading also avoids executing an uploaded HTML/SVG in our blob origin. */
 export async function downloadDocument(path: string) {
-  const { data, error } = await supabase.storage.from('documents').download(path);
+  const { data, error } = await supabase.storage
+    .from('documents')
+    .download(path, { cacheNonce: crypto.randomUUID() }, { cache: 'no-store' });
   if (error || !data)
     throw new Error('Could not download the document. Check your access and try again.');
   const blob = new Blob([data], { type: 'application/octet-stream' });

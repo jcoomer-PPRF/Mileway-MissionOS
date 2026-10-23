@@ -51,7 +51,8 @@ npm ci
 
 ### 3. Apply the database schema
 
-Run the migrations in `supabase/migrations/` **in order, one at a time** (`0001` → `0014`).
+Run the migrations in `supabase/migrations/` **in order, one at a time** (`0001` → `0014`, then
+`20261023230154_hosted_function_permissions.sql`; 15 files total).
 **Do not paste several files into a single SQL Editor run:** migration **`0006` adds the new role
 enum values and `0007` uses them**, and Postgres cannot add _and_ use an enum value in the same
 transaction — so `0006` must commit before `0007` runs. Either:
@@ -144,7 +145,7 @@ Enforcement is twofold: the UI hides actions a role can’t take, and **Postgres
 enforce the same rules at the database — the API rejects unauthorized writes regardless of the
 client. New users receive the role chosen by the inviting owner.
 
-Hardening rules (migrations `0011`–`0014`) that apply across all tiers:
+Hardening rules (migrations `0011`–`0014` and the hosted-permissions migration) that apply across all tiers:
 
 - `created_by` / `created_at` are **server-set** — an authenticated insert cannot supply them.
 - The own-record edit rule requires a **current** write-tier role: a user moved to Auditor or
@@ -202,8 +203,9 @@ with a type, issue/expiration dates, tags, and an uploaded file in the private `
 (owner / manager / accountant / auditor); organization and vehicle documents are visible to all
 authenticated users. This holds for the **files as well as the rows**: Storage reads follow the saved document's
 current scope, including legacy paths and scope changes. Unattached uploads are private to the
-uploader and owner/manager roles. Downloads authenticate each request instead of creating signed
-links. Previously issued signed URLs remain valid until their original expiry; downloaded copies
+uploader and owner/manager roles. Downloads authenticate each request with a fresh cache nonce and no-store fetch instead of
+creating signed links. New document uploads disable persistent caching. Earlier cached responses
+may remain available until their cache expires. Previously issued signed URLs remain valid until their original expiry; downloaded copies
 cannot be recalled. Expiration tracking and a driver-credentials view surface upcoming and lapsed
 credentials. Document types are editable (seeded: Bylaws, IRS Determination Letter, Insurance
 Policy, Policy / Procedure, Vehicle Title, Registration Document, Insurance Card, Driver License,
@@ -308,7 +310,7 @@ accounting / payroll / banking integrations.
 ## Project layout
 
 ```
-supabase/migrations/   SQL: schema, RLS, views, seed, storage, hardening (0001–0014)
+supabase/migrations/   SQL: schema, RLS, views, seed, storage, hardening (0001–0014 + hosted function permissions)
 supabase/functions/    Edge Functions: set-user-active (deactivation + Auth ban)
 supabase/tests/        executable SQL role, integrity, concurrency, and upgrade tests
 tests/                 unit and mocked browser regression tests
@@ -347,7 +349,9 @@ sh supabase/tests/runner_guard.sh
 
 SQL commands require `psql` and standard `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD` connection variables.
 The runners recreate their named scratch databases. Browser tests use fictional API responses;
-SQL tests use a minimal Supabase shim. Neither replaces hosted Auth/Storage/Edge validation in
+SQL tests use a minimal Supabase shim, including hosted default function grants. Completed
+hosted validation is recorded in [STAGING_VALIDATION.md](STAGING_VALIDATION.md). Provider and
+production release checks remain in
 [MILEWAY_MIGRATION_RUNBOOK.md](MILEWAY_MIGRATION_RUNBOOK.md).
 
 If attachment cleanup fails after a successful save, the record remains saved and a warning is

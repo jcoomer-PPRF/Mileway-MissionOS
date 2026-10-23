@@ -2,7 +2,8 @@
 
 Prepared on `codex/hardening-and-integrity` from the existing `claude/hardening-0011` branch.
 The full change includes that branch's three commits plus this implementation. This document
-records local validation, not a production deployment or successful hosted integration test.
+records local validation; `STAGING_VALIDATION.md` adds the completed hosted checks and fixes.
+No production deployment has occurred.
 
 ## Result
 
@@ -26,29 +27,30 @@ records local validation, not a production deployment or successful hosted integ
 
 ## Local verification — 2026-10-23
 
-| Check | Result |
-| --- | --- |
-| TypeScript app/tests/Edge SDK contract | Passed |
-| Unit tests | 10 passed |
-| Production build | Passed |
-| PostgreSQL 17 fresh install, migrations 0001–0014 | Passed |
-| Existing role matrix | 60 checks passed |
-| Extra integrity and concurrent-owner checks | Passed |
-| Upgrade from 0010 with existing users, records, legacy file | Passed |
-| Historical mileage preflight rejection | Passed |
-| Test runner rejects SQL errors/empty/incomplete output | 3 checks passed |
-| Chromium browser tests with fictional APIs | 4 passed |
-| Browser CSV under a 137-row API cap | All 1,207 rows exported |
-| Shell syntax and git whitespace checks | Passed |
+| Check                                                       | Result                  |
+| ----------------------------------------------------------- | ----------------------- |
+| TypeScript app/tests/Edge SDK contract                      | Passed                  |
+| Unit tests                                                  | 10 passed               |
+| Production build                                            | Passed                  |
+| PostgreSQL 17 fresh install, migrations 0001–0014           | Passed                  |
+| Existing role matrix                                        | 60 checks passed        |
+| Extra integrity and concurrent-owner checks                 | Passed                  |
+| Upgrade from 0010 with existing users, records, legacy file | Passed                  |
+| Historical mileage preflight rejection                      | Passed                  |
+| Test runner rejects SQL errors/empty/incomplete output      | 3 checks passed         |
+| Chromium browser tests with fictional APIs                  | 4 passed                |
+| Browser CSV under a 137-row API cap                         | All 1,207 rows exported |
+| Shell syntax and git whitespace checks                      | Passed                  |
 
 SQL used a scratch container with no published ports and fictional records. Browser tests used
 mocked Auth/REST/Storage responses; they did not contact a real Supabase project. Edge code was
-checked against the installed Supabase SDK, not executed in hosted Deno.
+checked against the installed Supabase SDK. The later staging pass also executed the function
+in hosted Deno with real password Auth, Storage, and database APIs.
 
 ## Before release
 
-Follow `MILEWAY_MIGRATION_RUNBOOK.md` on disposable hosted staging, including real provider
-signup, JWT-authenticated Storage operations, and the deployed `set-user-active` function.
+Review `STAGING_VALIDATION.md` for 39 passed hosted API checks and 2 real browser flows.
+Finish Google/email-provider verification and the production steps in `MILEWAY_MIGRATION_RUNBOOK.md`.
 Review preflight results on the actual database. Deploy the matching frontend/function/schema
 as one controlled release after review. No production database, storage, or hosting was changed.
 

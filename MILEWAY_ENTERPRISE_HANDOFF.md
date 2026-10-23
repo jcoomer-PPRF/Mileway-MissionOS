@@ -1,8 +1,8 @@
 # Mileway Enterprise — Build Handoff
 
 **Status:** hardening and reporting-integrity implementation prepared on
-`codex/hardening-and-integrity`, based on `claude/hardening-0011`. This is a local implementation;
-merge and hosted deployment have not occurred. The source, README, and migration runbook describe
+`codex/hardening-and-integrity`, based on `claude/hardening-0011`. The implementation is published as PR #1, with hosted staging
+validation recorded in `STAGING_VALIDATION.md`. Merge and production deployment have not occurred. The source, README, and migration runbook describe
 the current behavior. Sections 4–5 preserve the Phase 1/2 history; later hardening supersedes their
 bootstrap and file-access behavior.
 
@@ -147,7 +147,7 @@ Migration mapping (preserves existing access): `administrator` → `owner` (rena
 The reviewed `main` baseline was `a8bb24b`; the existing `claude/hardening-0011` branch was
 `001aaf2`. The implementation branch `codex/hardening-and-integrity` includes that branch's SQL,
 app changes, and test suite, then adds migrations `0012`–`0014` and the related app changes.
-Check actual remote branch state before publishing; these local changes have not been merged.
+The implementation is published as PR #1; inspect current branch and CI state before merging.
 
 ## 7. Hardening implementation and remaining release checks
 
@@ -167,10 +167,11 @@ Check actual remote branch state before publishing; these local changes have not
   checks, existing-data upgrade and preflight tests, runner failure tests, unit checks, and
   mocked Chromium browser checks. CI runs the same categories. See `supabase/tests/README.md`.
 
-**Release work still required:** run the hosted staging checklist in
+**Release work still required:** review completed core hosted checks in `STAGING_VALIDATION.md`,
+finish Google/email provider checks and the production preflight in
 `MILEWAY_MIGRATION_RUNBOOK.md`, review real existing-data preflight results, deploy the Edge
-Function, configure production values, and review before merging/deploying. Local SQL and browser
-mocks cannot prove real Auth provider, Storage HTTP, or Edge runtime behavior. Existing dependency
+Function, configure production values, and review before merging/deploying. Core password Auth, Storage HTTP, Edge runtime, outage recovery, and real browser flows have
+passed on isolated staging. Google and email-delivery verification still need provider setup. Existing dependency
 advisories remain a separate maintenance task. No reminder delivery or residents module was added.
 
 Receipts remain shared with active authenticated users (existing product decision). Locations and
@@ -253,7 +254,7 @@ Keep this method — it is why two phases landed clean and reversible:
 
 1. Use Node 24 or newer and run `npm ci`.
 2. Create a Supabase project.
-3. Run migrations `0001` → `0014` in order (`0006` before `0007`, for the enum commit).
+3. Run migrations `0001` → `0014`, then the timestamped hosted-permissions migration, in order (`0006` before `0007`, for the enum commit).
 4. Set `.env` (Supabase URL + anon key).
 5. Configure Google + email auth providers.
 6. Seed the first owner invitation on fresh installs, deploy `set-user-active`, then `npm run dev`.
@@ -263,7 +264,7 @@ Full steps are in `README.md`.
 ### Project layout
 
 ```
-supabase/migrations/   SQL: schema, RLS, views, seed, storage (0001–0014)
+supabase/migrations/   SQL: schema, RLS, views, seed, storage (0001–0014 + hosted permissions)
 src/
   lib/                 supabase client, utils, metrics, export (csv/excel/reports)
   contexts/            AuthContext (session + profile + role)
@@ -286,7 +287,7 @@ src/
 
 ## 14. Quick start for the next agent
 
-1. Read `README.md`, all 14 migrations, and `MILEWAY_MIGRATION_RUNBOOK.md`.
+1. Read `README.md`, all 15 migrations, and `MILEWAY_MIGRATION_RUNBOOK.md`.
 2. Inspect actual branch state; local hardening changes need review and publication.
 3. Run the automated checks and hosted staging checklist before release.
 4. Preserve the dual-entity model, five roles, privacy gates, and resident-domain deferral.

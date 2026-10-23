@@ -2,7 +2,8 @@
 
 Use a disposable Supabase staging project first. Local suites exercise PostgreSQL policies
 and fictional browser APIs; real Auth login/bans, Storage HTTP, and the deployed Edge Function
-require this hosted pass. No hosted project has been changed by this implementation.
+require this hosted pass. The completed staging results and remaining provider checks are in
+[STAGING_VALIDATION.md](STAGING_VALIDATION.md). Production has not been changed.
 
 ## 1. Review existing data and back up
 
@@ -36,7 +37,8 @@ Existing profiles are preserved. Invitation-only admission applies to new Auth a
 
 ## 2. Apply migrations in order
 
-Fresh staging projects need `0001` through `0014`. Each file must commit separately: `0006`
+Fresh staging projects need `0001` through `0014`, followed by
+`20261023230154_hosted_function_permissions.sql` (15 files). Each file must commit separately: `0006`
 adds enum values that `0007` uses. Never concatenate those files into one transaction.
 
 Use the Supabase SQL Editor, one complete file per run, or the CLI:
@@ -97,7 +99,8 @@ Record results against the exact branch commit and staging project. Use fictiona
   before the business reference is removed. Failed database saves clean up their new upload.
   Storage cleanup failures leave successful records intact; retry unreferenced cleanup through the
   Storage API. Never manually delete `storage.objects` rows. Already downloaded files and existing
-  signed URLs cannot be recalled; old signed URLs remain valid until their original expiry.
+  signed URLs cannot be recalled; old signed URLs remain valid until their original expiry. Legacy cached responses may also
+  survive until cache expiry; fresh app downloads use unique nonces and no-store fetches.
 - **Account switch:** load private documents as owner, sign out, then sign in as contributor on
   the same browser. No previous-account rows or late responses may appear. Demote the signed-in
   owner using another owner and refresh the profile/session to verify permission cache resets.
@@ -117,7 +120,7 @@ Record results against the exact branch commit and staging project. Use fictiona
 
 ## 5. Release
 
-Review staging evidence and the code diff before merging. Confirm legal entity names/EINs,
+Review `STAGING_VALIDATION.md`, any remaining provider checks, and the code diff before merging. Confirm legal entity names/EINs,
 IRS rates (2026 defaults are placeholders), category mappings, Auth providers/redirects, and
 hosting environment values. Dependency advisories remain a separate upgrade task.
 

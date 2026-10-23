@@ -50,7 +50,7 @@ export async function uploadDocumentFile(
   const prefix = profileId ? `personal/${profileId}` : entityId;
   const path = `${prefix}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from('documents').upload(path, file, {
-    cacheControl: '3600',
+    cacheControl: '0',
     upsert: false,
   });
   if (error) throw error;

@@ -41,6 +41,9 @@ echo 'PASS: upgrade refuses inconsistent historical mileage'
 for migration in "$HERE"/../migrations/00{13..14}_*.sql; do
   "$PSQL" -X -v ON_ERROR_STOP=1 -1 -d "$DB" -f "$migration" >/dev/null
 done
+for migration in "$HERE"/../migrations/[2-9]*.sql; do
+  "$PSQL" -X -v ON_ERROR_STOP=1 -1 -d "$DB" -f "$migration" >/dev/null
+done
 "$PSQL" -X -v ON_ERROR_STOP=1 -d "$DB" <<'SQL'
 do $$ begin
   if (select count(*) from public.profiles) <> 3 then raise exception 'Existing accounts lost'; end if;
