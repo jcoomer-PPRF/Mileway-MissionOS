@@ -32,8 +32,11 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npm run build:md01
+      - run: node scripts/verify-md01-build.mjs
       - run: bash supabase/tests/run.sh mileway_ci_test
       - run: bash supabase/tests/upgrade.sh
       - run: sh supabase/tests/runner_guard.sh
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - run: npm run test:md01:built

@@ -1,17 +1,21 @@
 {
-  "name": "mileway",
+  "name": "missionos",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Mileway \u2014 internal operations app (mileage, vehicles, expenses) for a 501(c)(3) foundation and its operating LLC.",
+  "description": "MissionOS — Mission Delivery, Operations, and shared organizational tools.",
   "scripts": {
     "dev": "vite",
+    "dev:md01": "vite --mode md01 --open /demo.html",
+    "build:md01": "tsc --noEmit && vite build --mode md01",
+    "preview:md01": "vite preview --mode md01 --outDir dist-md01",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.tests.json",
     "preview": "vite preview",
     "db:types": "supabase gen types typescript --linked > src/types/supabase.ts",
-    "test": "node --import ./tests/register.mjs tests/integrity.test.ts",
-    "test:e2e": "playwright test"
+    "test": "node --import ./tests/register.mjs tests/integrity.test.ts && node --import ./tests/register.mjs tests/mission-delivery.test.ts",
+    "test:e2e": "playwright test",
+    "test:md01:built": "playwright test --config playwright.md01.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

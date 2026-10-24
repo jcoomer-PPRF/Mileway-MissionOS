@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
-import { AlertCircle, Gauge, Mail } from 'lucide-react';
+import { AlertCircle, Compass, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -53,11 +53,11 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white">
-            <Gauge className="h-7 w-7" />
+            <Compass className="h-7 w-7" />
           </div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Mileway</h1>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">MissionOS</h1>
           <p className="text-sm text-slate-500">
-            Mileage, vehicles &amp; expenses — Foundation + Operating LLC
+            Mission Delivery · Operations · Shared platform
           </p>
         </div>
 
@@ -158,6 +158,7 @@ export function LoginPage() {
         <p className="mt-4 text-center text-xs text-slate-400">
           Account creation requires an invitation from an owner using the same email address.
         </p>
+        {import.meta.env.DEV && <p className="mt-4 text-center text-sm"><a className="font-medium text-emerald-700 underline" href="/demo.html">Open fictional workflow preview</a></p>}
       </div>
     </div>
   );

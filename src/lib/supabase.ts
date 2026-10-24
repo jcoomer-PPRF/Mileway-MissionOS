@@ -8,7 +8,7 @@ export const isSupabaseConfigured = Boolean(url && anonKey);
 if (!isSupabaseConfigured) {
   // The login screen also surfaces this; logging helps during setup.
   console.error(
-    'Mileway: missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. Copy .env.example to .env and restart.',
+    'MissionOS: missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. Copy .env.example to .env and restart.',
   );
 }
 
