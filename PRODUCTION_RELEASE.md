@@ -7,7 +7,7 @@ The dated staging evidence remains a pre-merge snapshot. The original project's
 backend is initialized and the frontend is published at
 [peerpoint-missionos.pages.dev](https://peerpoint-missionos.pages.dev).
 The custom domain is active at [missionos.peerpoint.org](https://missionos.peerpoint.org).
-Supabase Site URL configuration and authenticated live acceptance remain pending.
+Supabase Site URL is verified; first-owner signup and authenticated live acceptance remain pending.
 
 ## Cloudflare deployment — 2026-10-24
 
@@ -179,9 +179,12 @@ is its own origin. Configure the intended Google client and real email delivery,
 then test confirmation and sign-in with a consenting human mailbox. Staging's
 Admin-confirmed fictional accounts did not validate email delivery or Google login.
 
-The intended Redirect URL is added. Site URL is a separate setting and still
-requires save/confirmation; the redirect allowlist does not replace it. The pending
-owner invitation and absence of Auth users/profiles were rechecked before signup.
+The user added the intended Redirect URL and saved Site URL. A public request with
+an intentionally invalid confirmation token returned HTTP 303 to
+`https://missionos.peerpoint.org`, verifying the actual default redirect without
+creating an account or sending email. This checks routing, not successful email
+delivery or token redemption. The pending owner invitation and absence of Auth
+users/profiles were rechecked before the owner was directed to sign up privately.
 
 Confirm legal names/EINs and category classifications with the responsible owner.
 The original seed files contain 2026 placeholders. The IRS table checked on 2026-10-24 lists
