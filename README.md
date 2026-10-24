@@ -1,4 +1,34 @@
-# Mileway
+# MissionOS
+
+MissionOS is being expanded around peer-support Mission Delivery, with the existing
+fleet application retained under Operations. **MD01 is a fictional, in-memory
+workflow demonstration; service documentation remains in OneStep.** No care
+storage, AI drafting, voice/watch capture, or legal signing is included.
+
+Start the independent preview without Supabase credentials:
+
+```sh
+npm ci --ignore-scripts
+npm run dev:md01
+```
+
+Open `/demo.html`. For a compiled local review, use `npm run build:md01` and
+`npm run preview:md01`. See [MD01_BUILD.md](MD01_BUILD.md) for scope, role/state
+rules, acceptance evidence and reset/export behavior. The default `npm run build`
+continues to create only the authenticated application; the demonstration entry
+is excluded. MD01 has not been merged or deployed by this build assignment.
+
+The authenticated application's `/` route is now the Mission Delivery landing.
+The previous fleet dashboard is at `/operations` (also `/dashboard`). Existing
+fleet, report, document, audit and settings deep links retain their paths and
+authorization checks.
+
+The historical component documentation below describes the fleet implementation.
+Its reminder/resident roadmap does not define the current MissionOS product.
+
+---
+
+# Fleet component documentation
 
 Internal operations app for a two-entity organization — a **501(c)(3) foundation** (primary)
 and an **operating LLC** beneath it. Mileway handles **mileage logging, vehicle and

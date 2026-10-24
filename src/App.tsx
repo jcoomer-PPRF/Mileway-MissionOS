@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import { RequireRole } from '@/components/auth/RequireRole';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -14,6 +14,7 @@ import { ReportsPage } from '@/pages/ReportsPage';
 import { AuditLogPage } from '@/pages/AuditLogPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { MissionDeliveryHome } from '@/pages/MissionDeliveryHome';
 
 export function App() {
   return (
@@ -21,7 +22,9 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={<MissionDeliveryHome />} />
+          <Route path="operations" element={<DashboardPage />} />
+          <Route path="dashboard" element={<Navigate to="/operations" replace />} />
           <Route path="trips" element={<TripsPage />} />
           <Route path="vehicles" element={<VehiclesPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />
