@@ -5,7 +5,8 @@ import { useEntities } from '@/hooks/useReference';
 import { useVehicles } from '@/hooks/useVehicles';
 import { useUsers } from '@/hooks/useUsers';
 import { useDocumentTypes } from '@/hooks/useLookups';
-import { getDocumentUrl, uploadDocumentFile, type DocumentInput } from '@/hooks/useDocuments';
+import { uploadDocumentFile, type DocumentInput } from '@/hooks/useDocuments';
+import { cleanupAttachment, downloadDocument } from '@/lib/attachments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -33,7 +34,7 @@ export function DocumentForm({
   onSubmit: (values: DocumentInput) => Promise<void>;
   onCancel: () => void;
 }) {
-  const { profile } = useAuth();
+  const { profile, canEditAll } = useAuth();
   const { data: entities } = useEntities();
   const { data: vehicles } = useVehicles();
   const { data: users } = useUsers();
@@ -58,8 +59,11 @@ export function DocumentForm({
 
   async function viewFile() {
     if (!receiptPath) return;
-    const url = await getDocumentUrl(receiptPath);
-    if (url) window.open(url, '_blank');
+    try {
+      await downloadDocument(receiptPath);
+    } catch {
+      setSubmitError('Could not download the document. Check your access and retry.');
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -75,9 +79,15 @@ export function DocumentForm({
     if (Object.keys(errs).length > 0) return;
 
     setBusy(true);
+    let uploaded: string | null = null;
     try {
       let path = receiptPath;
-      if (file) path = await uploadDocumentFile(file, entityId);
+      if (file)
+        path = uploaded = await uploadDocumentFile(
+          file,
+          entityId,
+          scope === 'driver' ? profileId : null,
+        );
 
       await onSubmit({
         entity_id: entityId,
@@ -88,10 +98,14 @@ export function DocumentForm({
         file_path: path,
         issued_date: strOrNull(issued),
         expiration_date: strOrNull(expiration),
-        tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
+        tags: tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
         notes: strOrNull(notes),
       });
     } catch (err) {
+      await cleanupAttachment('documents', uploaded);
       setSubmitError(err instanceof Error ? err.message : 'Failed to save document');
     } finally {
       setBusy(false);
@@ -123,11 +137,13 @@ export function DocumentForm({
         <Field label="Document type" required error={errors.document_type_id}>
           <Select value={typeId} onChange={(e) => setTypeId(e.target.value)}>
             <option value="">Select…</option>
-            {(types ?? []).filter((t) => t.is_active || t.id === typeId).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
+            {(types ?? [])
+              .filter((t) => t.is_active || t.id === typeId)
+              .map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
           </Select>
         </Field>
         <Field label="Entity" required error={errors.entity_id}>
@@ -147,7 +163,8 @@ export function DocumentForm({
               <option value="">Select…</option>
               {(vehicles ?? []).map((v) => (
                 <option key={v.id} value={v.id}>
-                  {[v.year, v.make, v.model].filter(Boolean).join(' ')} {v.license_plate ? `· ${v.license_plate}` : ''}
+                  {[v.year, v.make, v.model].filter(Boolean).join(' ')}{' '}
+                  {v.license_plate ? `· ${v.license_plate}` : ''}
                 </option>
               ))}
             </Select>
@@ -157,11 +174,13 @@ export function DocumentForm({
           <Field label="Person" required error={errors.profile_id}>
             <Select value={profileId} onChange={(e) => setProfileId(e.target.value)}>
               <option value="">Select…</option>
-              {(users ?? []).map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.full_name || u.email}
-                </option>
-              ))}
+              {(users ?? [])
+                .filter((u) => canEditAll || u.id === profile?.id)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.full_name || u.email}
+                  </option>
+                ))}
             </Select>
           </Field>
         )}
@@ -180,7 +199,11 @@ export function DocumentForm({
       </div>
 
       <Field label="Tags" hint="Comma-separated.">
-        <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="e.g. 2026, signed" />
+        <Input
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="e.g. 2026, signed"
+        />
       </Field>
 
       <Field label="File" hint="Stored as a file only (no OCR). PDF or image.">
@@ -198,7 +221,7 @@ export function DocumentForm({
           {file && <span className="text-sm text-slate-600">{file.name}</span>}
           {!file && receiptPath && (
             <Button type="button" variant="ghost" size="sm" onClick={viewFile}>
-              View current file
+              Download current file
             </Button>
           )}
         </div>

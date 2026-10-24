@@ -15,15 +15,15 @@ by **Capacitor** into native iOS/Android with no rearchitecting. Supabase provid
 auth, private file storage (receipts + documents), and **row-level security that enforces the five
 roles at the database layer** — defense-in-depth that matters for an auditor-facing app.
 
-| Concern | Choice |
-|---|---|
-| Frontend | Vite, React 18, TypeScript, React Router |
-| UI | Tailwind CSS, lucide-react icons |
-| Server state | TanStack Query, `@supabase/supabase-js` |
-| Tables / charts | TanStack Table, Recharts |
-| Export | SheetJS (`xlsx`) for multi-tab Excel; native CSV |
-| Backend / data | Supabase: Postgres + RLS, Auth (email + Google), Storage |
-| Mobile (later) | Capacitor wraps `dist/` |
+| Concern         | Choice                                                   |
+| --------------- | -------------------------------------------------------- |
+| Frontend        | Vite, React 18, TypeScript, React Router                 |
+| UI              | Tailwind CSS, lucide-react icons                         |
+| Server state    | TanStack Query, `@supabase/supabase-js`                  |
+| Tables / charts | TanStack Table, Recharts                                 |
+| Export          | SheetJS (`xlsx`) for multi-tab Excel; native CSV         |
+| Backend / data  | Supabase: Postgres + RLS, Auth (email + Google), Storage |
+| Mobile (later)  | Capacitor wraps `dist/`                                  |
 
 ---
 
@@ -32,7 +32,8 @@ roles at the database layer** — defense-in-depth that matters for an auditor-f
 ### 1. Install
 
 ```bash
-npm install
+node --version  # Node 24 or newer
+npm ci
 ```
 
 ### 2. Create a Supabase project
@@ -50,9 +51,10 @@ npm install
 
 ### 3. Apply the database schema
 
-Run the migrations in `supabase/migrations/` **in order, one at a time** (`0001` → `0010`).
+Run the migrations in `supabase/migrations/` **in order, one at a time** (`0001` → `0014`, then
+`20261023230154_hosted_function_permissions.sql`; 15 files total).
 **Do not paste several files into a single SQL Editor run:** migration **`0006` adds the new role
-enum values and `0007` uses them**, and Postgres cannot add *and* use an enum value in the same
+enum values and `0007` uses them**, and Postgres cannot add _and_ use an enum value in the same
 transaction — so `0006` must commit before `0007` runs. Either:
 
 - **Supabase Dashboard → SQL Editor**: paste each file’s contents and run it, one file at a time,
@@ -70,15 +72,45 @@ create the private **`receipts`** and **`documents`** storage buckets; and seed 
 IRS mileage rates, and the editable lookups (trip/expense categories, job titles, and
 location / maintenance / document types).
 
+Before upgrading an existing project, follow the [migration runbook](MILEWAY_MIGRATION_RUNBOOK.md).
+Migration `0012` rejects mixed document scopes and duplicate file references; `0013` rejects
+historical odometer distances that disagree with their endpoints. Review corrections before applying.
+
+For a **fresh project**, after all migrations and before the first signup, seed the first owner's
+invitation using the SQL Editor (substitute your actual email):
+
+```sql
+insert into public.user_invitations(email, role)
+values (lower('your-owner-email@example.org'), 'owner');
+```
+
+Existing accounts remain intact when upgrading. New accounts require an unused, unexpired
+invitation matching their email. Owners manage invitations in **Settings → Invitations**; adding
+an invitation does not send email. Share the app link separately.
+
 ### 4. Configure auth providers
 
-- **Email**: enabled by default. For the fastest internal setup, turn **off** "Confirm email"
-  under **Authentication → Providers → Email** (or just use Google).
+- **Email**: enabled by default. Keep email confirmation enabled for hosted use so the invited email is verified. A disposable test project may disable it for fictional accounts.
 - **Google**: **Authentication → Providers → Google**, add your Google OAuth client ID/secret,
   and add your app origin (e.g. `http://localhost:5173`) to **Authentication → URL Configuration →
   Redirect URLs**.
 
-### 5. Run
+### 5. Deploy the deactivation function
+
+Owner account edits use the `set-user-active` Edge Function. The database commits role,
+profile fields, and status together and queues Auth ban/unban synchronization. Deactivation
+blocks database access immediately; an Auth outage leaves a pending item with a **Retry sign-in
+sync** action in Settings → Users. No compensating update reactivates the database account.
+Both ordinary user edits and status changes require this deployed function.
+
+```bash
+supabase link --project-ref <your-ref>
+supabase functions deploy set-user-active
+```
+
+The service-role key stays in the Edge Function environment; never place it in a `VITE_*` variable.
+
+### 6. Run
 
 ```bash
 npm run dev      # http://localhost:5173
@@ -86,9 +118,8 @@ npm run build    # typecheck + production build to dist/
 npm run preview  # serve the production build
 ```
 
-> **First account = Owner.** The first user to sign up is automatically made the **Owner**
-> (bootstrap). Everyone after that defaults to **Contributor**; change roles in
-> **Settings → Users**.
+> Signup requires an invitation. Seed the first owner's invitation explicitly; there is no
+> automatic first-user ownership grant.
 
 ---
 
@@ -102,24 +133,36 @@ Identity is split into two independent fields on each user:
   Read-Only Auditor, Accountant.
 - **Role (permission tier)** — governs access. Five tiers:
 
-| Tier | Access |
-|---|---|
-| **Owner** | Full access, including settings and user management. |
-| **Manager** | Read/write **all** operational data. No settings or user management. |
-| **Contributor** | Reads everything; creates records; edits/deletes **only the records they created**. |
-| **Accountant** | Reads everything (incl. audit log) and runs/exports reports. No operational edits. |
-| **Auditor** | Read-only access to all records **and the audit log**. No writes. |
+| Tier            | Access                                                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Owner**       | Full access, including settings and user management.                                                                                 |
+| **Manager**     | Read/write **all** operational data. No settings or user management.                                                                 |
+| **Contributor** | Reads shared operational records and their own personal documents; creates records; edits/deletes **only the records they created**. |
+| **Accountant**  | Reads everything (incl. audit log) and runs/exports reports. No operational edits.                                                   |
+| **Auditor**     | Read-only access to all records **and the audit log**. No writes.                                                                    |
 
 Enforcement is twofold: the UI hides actions a role can’t take, and **Postgres RLS policies**
 enforce the same rules at the database — the API rejects unauthorized writes regardless of the
-client. The first account to sign up bootstraps as **Owner**; everyone after defaults to
-**Contributor**.
+client. New users receive the role chosen by the inviting owner.
+
+Hardening rules (migrations `0011`–`0014` and the hosted-permissions migration) that apply across all tiers:
+
+- `created_by` / `created_at` are **server-set** — an authenticated insert cannot supply them.
+- The own-record edit rule requires a **current** write-tier role: a user moved to Auditor or
+  Accountant loses edit/delete on records they created earlier.
+- **Deactivation blocks all database reads and writes**, including existing tokens. Auth bans
+  synchronize separately; pending retries appear to owners. Only an active owner can restore access.
+- Concurrent demotions/deactivations cannot remove the last active owner.
+- Account changes discard private cached data; permission changes refresh the account's cache.
+- Automated checks cover the role matrix, attachment rules, access synchronization, upgrades,
+  concurrent owner changes, browser account switching, and exports. See [tests](supabase/tests/README.md).
 
 ---
 
 ## Features
 
 ### Trips & mileage
+
 Manual trip logging — date, vehicle, category, entity, and distance entered directly or computed
 from odometer start/end. Trip categories are editable and each maps to an `irs_rate_type`
 (business / medical / charitable / none); the date-effective rate is applied to compute an
@@ -129,19 +172,23 @@ change clears the auto-categorized flag. Trips also carry GPS/location columns i
 (start/end lat-lng, timestamps, route, saved-location references).
 
 ### Vehicles
+
 VIN, plate, year/make/model, odometer, and insurance & registration with expiration dates.
 
 ### Expenses
+
 Amount, date, category, entity, optional vehicle link, and an optional receipt image stored in the
 private `receipts` bucket (file only — **no OCR**).
 
 ### Locations (geofences)
+
 Saved locations with coordinates, a radius, a location type, an optional owning entity
 (or shared across both), and a default trip category that powers auto-categorization. Location
 types are editable (seeded: Home, Group Home, Hospital, Pharmacy, County Office, Day Program,
 Employment Site, Vendor).
 
 ### Fleet maintenance
+
 Service **records** (type, date, odometer, cost, vendor, optional link to an expense), per-vehicle
 **schedules** with mileage and/or month intervals, and a computed **due** view that flags what’s
 due or overdue using each vehicle’s current odometer (derived from trips) and last service.
@@ -149,25 +196,34 @@ Maintenance types are editable (seeded: Oil Change, Tire Rotation, Brake Service
 Inspection, Registration Renewal, Insurance Renewal).
 
 ### Documents & driver credentials
+
 A central store for documents scoped to the **organization**, a **vehicle**, or a **person**, each
 with a type, issue/expiration dates, tags, and an uploaded file in the private `documents` bucket.
 **Personal (per-person) documents are visible only to the subject and to oversight roles**
 (owner / manager / accountant / auditor); organization and vehicle documents are visible to all
-authenticated users. Expiration tracking and a driver-credentials view surface upcoming and lapsed
+authenticated users. This holds for the **files as well as the rows**: Storage reads follow the saved document's
+current scope, including legacy paths and scope changes. Unattached uploads are private to the
+uploader and owner/manager roles. Downloads authenticate each request with a fresh cache nonce and no-store fetch instead of
+creating signed links. New document uploads disable persistent caching. Earlier cached responses
+may remain available until their cache expires. Previously issued signed URLs remain valid until their original expiry; downloaded copies
+cannot be recalled. Expiration tracking and a driver-credentials view surface upcoming and lapsed
 credentials. Document types are editable (seeded: Bylaws, IRS Determination Letter, Insurance
 Policy, Policy / Procedure, Vehicle Title, Registration Document, Insurance Card, Driver License,
 Insurance Verification, Background Check, Training / Safety Certificate, Other).
 
 ### Dashboard
+
 Business miles (month + YTD), miles by entity, vehicle & fuel costs, and estimated IRS mileage
 deduction — plus a **Needs attention** panel surfacing maintenance due, upcoming vehicle
 insurance/registration expirations, and expiring documents (in-app only).
 
 ### Settings (owner only)
+
 Entities, trip categories, expense categories, mileage rates, and the lookups — location types,
-maintenance types, document types, and job titles — plus **Users** (role and job title).
+maintenance types, document types, and job titles — plus **Users** (role, job title, status, sign-in sync) and **Invitations** (email and role).
 
 ### Audit
+
 Every insert/update/delete on every table is mirrored to an append-only `audit_log`, readable by
 owner, accountant, and auditor.
 
@@ -208,7 +264,7 @@ All tables carry immutable `created_at` / `created_by` and auto-maintained `upda
 
 - **v_trip_details**, **v_expense_details** — flatten joins; `v_trip_details` also computes the
   applied rate + estimated deduction.
-- **v_vehicle_odometer** — current odometer per vehicle, derived from trips.
+- **v_vehicle_odometer** — current odometer per vehicle, derived from vehicle, completed trip, and completed service readings.
 - **v_maintenance_due** — schedules joined to odometer + last service to flag due/overdue.
 - **v_documents_expiring** — documents with an expiration date, ordered by time remaining.
 - **v_driver_credentials** — per-person credential documents.
@@ -222,6 +278,7 @@ lookups.
 
 - **IRS-format mileage log**, **per-entity mileage summary**, **expense report**, and
   **maintenance report** — filterable by entity (single or consolidated) and date range.
+- Reports page through all matching rows; query errors make reports unavailable instead of exporting partial totals. Dashboard YTD ends today. Odometer distances are calculated by the database, and completed service history advances maintenance thresholds.
 - Export any report to **CSV**, or to **Excel**. The **Full workbook** export produces one `.xlsx`
   with separate **Trips / Vehicles / Expenses / Maintenance** tabs.
 
@@ -234,7 +291,7 @@ lookups.
   guidance in **Settings → Mileage rates**.
 - **Category → rate-type mapping** (e.g. Pharmacy → medical, Fundraising → charitable) is a sensible
   default; confirm classifications with your tax advisor in **Settings → Trip categories**.
-- **Contributors read everything** (shared operational picture) but write only their own records.
+- **Contributors read shared operational records and their own personal documents**, and write only their own records.
 - **Expense → vehicle is optional** (covers non-vehicle costs like general supplies).
 - Entity **legal names / EINs** are placeholders — set them in **Settings → Entities**.
 
@@ -253,7 +310,11 @@ accounting / payroll / banking integrations.
 ## Project layout
 
 ```
-supabase/migrations/   SQL: schema, RLS, views, seed, storage (0001–0010)
+supabase/migrations/   SQL: schema, RLS, views, seed, storage, hardening (0001–0014 + hosted function permissions)
+supabase/functions/    Edge Functions: set-user-active (deactivation + Auth ban)
+supabase/tests/        executable SQL role, integrity, concurrency, and upgrade tests
+tests/                 unit and mocked browser regression tests
+.github/workflows/     repeatable CI validation
 src/
   lib/                 supabase client, utils, metrics, export (csv/excel/reports)
   contexts/            AuthContext (session + profile + role)
@@ -272,3 +333,28 @@ src/
 
 > `npm run db:types` regenerates `src/types/supabase.ts` from a linked Supabase project
 > (requires the Supabase CLI). Hand-written row types live in `src/types/db.ts`.
+
+## Validation
+
+```bash
+npm run typecheck
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+bash supabase/tests/run.sh mileway_local_test  # disposable PostgreSQL only
+bash supabase/tests/upgrade.sh               # separate disposable upgrade database
+sh supabase/tests/runner_guard.sh
+```
+
+SQL commands require `psql` and standard `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD` connection variables.
+The runners recreate their named scratch databases. Browser tests use fictional API responses;
+SQL tests use a minimal Supabase shim, including hosted default function grants. Completed
+hosted validation is recorded in [STAGING_VALIDATION.md](STAGING_VALIDATION.md). Provider and
+production release checks remain in
+[MILEWAY_MIGRATION_RUNBOOK.md](MILEWAY_MIGRATION_RUNBOOK.md).
+
+If attachment cleanup fails after a successful save, the record remains saved and a warning is
+logged. An administrator can retry removing the unreferenced object through the Storage API;
+never delete file metadata directly with SQL. Existing dependency findings (including SheetJS
+and older frontend tooling) remain a separate upgrade task; this change does not resolve them.

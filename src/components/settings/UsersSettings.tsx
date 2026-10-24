@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Pencil } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ALL_ROLES, useUsers, useUserMutations } from '@/hooks/useUsers';
+import { ALL_ROLES, useUsers, useUserMutations, useAccessSync } from '@/hooks/useUsers';
 import { useEntities } from '@/hooks/useReference';
 import { useJobTitles } from '@/hooks/useLookups';
 import { ROLE_DESCRIPTIONS, ROLE_LABELS } from '@/lib/constants';
@@ -15,15 +15,19 @@ import { PageLoader, Spinner } from '@/components/ui/spinner';
 import type { Profile, UserRole } from '@/types/db';
 
 export function UsersSettings() {
-  const { profile: me } = useAuth();
+  const { profile: me, refreshProfile } = useAuth();
   const { data: users, isLoading } = useUsers();
   const { data: entities } = useEntities();
   const { data: jobTitles } = useJobTitles();
-  const { update } = useUserMutations();
+  const { update, retrySync } = useUserMutations();
   const [editing, setEditing] = useState<Profile | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const { data: sync } = useAccessSync();
 
-  const entityName = (id: string | null) => (id ? entities?.find((e) => e.id === id)?.name ?? '—' : '—');
-  const jobTitleName = (id: string | null) => (id ? jobTitles?.find((j) => j.id === id)?.name ?? '—' : '—');
+  const entityName = (id: string | null) =>
+    id ? (entities?.find((e) => e.id === id)?.name ?? '—') : '—';
+  const jobTitleName = (id: string | null) =>
+    id ? (jobTitles?.find((j) => j.id === id)?.name ?? '—') : '—';
 
   if (isLoading) return <PageLoader />;
 
@@ -50,7 +54,32 @@ export function UsersSettings() {
               <td className="px-4 py-2 text-slate-600">{jobTitleName(u.job_title_id)}</td>
               <td className="px-4 py-2 text-slate-600">{entityName(u.default_entity_id)}</td>
               <td className="px-4 py-2">
-                {u.is_active ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Inactive</Badge>}
+                {u.is_active ? (
+                  <Badge tone="green">Active</Badge>
+                ) : (
+                  <Badge tone="gray">Inactive</Badge>
+                )}
+                {sync?.some((s) => s.profile_id === u.id && s.revision > s.synced_revision) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={retrySync.isPending}
+                    onClick={async () => {
+                      try {
+                        const result = await retrySync.mutateAsync(u.id);
+                        setNotice(
+                          result.pending
+                            ? 'Sign-in synchronization is still pending. Please retry shortly.'
+                            : 'Sign-in access synchronized.',
+                        );
+                      } catch {
+                        setNotice('Could not synchronize sign-in access. Please retry.');
+                      }
+                    }}
+                  >
+                    Retry sign-in sync
+                  </Button>
+                )}
               </td>
               <td className="px-4 py-2 text-right">
                 <Button variant="ghost" size="sm" onClick={() => setEditing(u)}>
@@ -63,15 +92,32 @@ export function UsersSettings() {
       </table>
 
       <p className="px-4 py-3 text-xs text-slate-400">
-        New accounts default to Staff. Roles, status, and default entity are managed here.
+        New accounts require an invitation. Deactivation blocks data access immediately. If sign-in
+        synchronization is pending, retry it here.
       </p>
+      {notice && (
+        <p role="status" className="px-4 pb-3 text-sm text-slate-600">
+          {notice}
+        </p>
+      )}
 
       {editing && (
         <EditUserModal
           user={editing}
           isSelf={editing.id === me?.id}
           onClose={() => setEditing(null)}
-          onSave={(input) => update.mutateAsync({ id: editing.id, input })}
+          onSave={async (input) => {
+            const result = await update.mutateAsync({
+              id: editing.id,
+              input: { ...input, is_active: input.is_active ?? editing.is_active },
+            });
+            setNotice(
+              result.pending
+                ? 'Account updated. Sign-in synchronization is pending; retry it from Users.'
+                : null,
+            );
+            if (editing.id === me?.id) await refreshProfile();
+          }}
         />
       )}
     </Card>
@@ -103,7 +149,11 @@ function EditUserModal({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (isSelf && role !== 'owner') {
-      if (!window.confirm('You are changing your own role away from Owner. You may lose owner access. Continue?'))
+      if (
+        !window.confirm(
+          'You are changing your own role away from Owner. You may lose owner access. Continue?',
+        )
+      )
         return;
     }
     setError(null);
@@ -156,10 +206,17 @@ function EditUserModal({
           </Select>
         </Field>
         <Field label="Status">
-          <Select value={active ? 'active' : 'inactive'} onChange={(e) => setActive(e.target.value === 'active')}>
+          <Select
+            disabled={isSelf}
+            value={active ? 'active' : 'inactive'}
+            onChange={(e) => setActive(e.target.value === 'active')}
+          >
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </Select>
+          {isSelf && (
+            <p className="text-xs text-slate-500">Another owner manages your account status.</p>
+          )}
         </Field>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <ModalFooter>

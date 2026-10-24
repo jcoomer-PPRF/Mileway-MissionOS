@@ -3,13 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Mileway — internal operations app (mileage, vehicles, expenses) for a 501(c)(3) foundation and its operating LLC.",
+  "description": "Mileway \u2014 internal operations app (mileage, vehicles, expenses) for a 501(c)(3) foundation and its operating LLC.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.tests.json",
     "preview": "vite preview",
-    "db:types": "supabase gen types typescript --linked > src/types/supabase.ts"
+    "db:types": "supabase gen types typescript --linked > src/types/supabase.ts",
+    "test": "node --import ./tests/register.mjs tests/integrity.test.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -30,6 +32,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.7.4",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
@@ -39,5 +42,8 @@
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.2",
     "vite": "^5.4.8"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

@@ -26,7 +26,7 @@ export function TripsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<TripDetail | null>(null);
 
-  const canEdit = (t: TripDetail) => canEditAll || t.created_by === profile?.id;
+  const canEdit = (t: TripDetail) => canEditAll || (canWrite && t.created_by === profile?.id);
 
   const filtered = useMemo(
     () => (trips ?? []).filter((t) => entityFilter === 'all' || t.entity_id === entityFilter),
@@ -57,7 +57,12 @@ export function TripsPage() {
       {
         accessorKey: 'entity_name',
         header: 'Entity',
-        cell: (c) => <EntityBadge name={c.row.original.entity_name} isPrimary={c.row.original.entity_is_primary} />,
+        cell: (c) => (
+          <EntityBadge
+            name={c.row.original.entity_name}
+            isPrimary={c.row.original.entity_is_primary}
+          />
+        ),
       },
       { accessorKey: 'vehicle_label', header: 'Vehicle' },
       {
@@ -87,10 +92,20 @@ export function TripsPage() {
         cell: (c) =>
           canEdit(c.row.original) ? (
             <div className="flex justify-end gap-1">
-              <Button variant="ghost" size="icon" onClick={() => openEdit(c.row.original)} aria-label="Edit">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openEdit(c.row.original)}
+                aria-label="Edit"
+              >
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => handleDelete(c.row.original)} aria-label="Delete">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(c.row.original)}
+                aria-label="Delete"
+              >
                 <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
             </div>
@@ -98,7 +113,7 @@ export function TripsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile?.id, canEditAll],
+    [profile?.id, canEditAll, canWrite],
   );
 
   return (
@@ -132,7 +147,11 @@ export function TripsPage() {
         )}
       </Card>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit trip' : 'Log trip'}>
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editing ? 'Edit trip' : 'Log trip'}
+      >
         <TripForm
           initial={
             editing

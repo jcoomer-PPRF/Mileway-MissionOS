@@ -5,6 +5,7 @@ import { useEntities, useExpenseCategories } from '@/hooks/useReference';
 import { useVehicles } from '@/hooks/useVehicles';
 import { getReceiptUrl, uploadReceipt, type ExpenseInput } from '@/hooks/useExpenses';
 import { todayISO } from '@/lib/utils';
+import { cleanupAttachment } from '@/lib/attachments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -29,8 +30,12 @@ export function ExpenseForm({
   const { data: vehicles } = useVehicles();
   const { data: categories } = useExpenseCategories();
 
-  const activeVehicles = (vehicles ?? []).filter((v) => v.is_active || v.id === initial?.vehicle_id);
-  const activeCategories = (categories ?? []).filter((c) => c.is_active || c.id === initial?.expense_category_id);
+  const activeVehicles = (vehicles ?? []).filter(
+    (v) => v.is_active || v.id === initial?.vehicle_id,
+  );
+  const activeCategories = (categories ?? []).filter(
+    (c) => c.is_active || c.id === initial?.expense_category_id,
+  );
 
   const [entityId, setEntityId] = useState(initial?.entity_id ?? profile?.default_entity_id ?? '');
   const [categoryId, setCategoryId] = useState(initial?.expense_category_id ?? '');
@@ -65,9 +70,10 @@ export function ExpenseForm({
     if (Object.keys(errs).length > 0) return;
 
     setBusy(true);
+    let uploaded: string | null = null;
     try {
       let path = receiptPath;
-      if (file) path = await uploadReceipt(file, entityId);
+      if (file) path = uploaded = await uploadReceipt(file, entityId);
 
       const values: ExpenseInput = {
         entity_id: entityId,
@@ -81,6 +87,7 @@ export function ExpenseForm({
       };
       await onSubmit(values);
     } catch (err) {
+      await cleanupAttachment('receipts', uploaded);
       setSubmitError(err instanceof Error ? err.message : 'Failed to save expense');
     } finally {
       setBusy(false);
@@ -114,14 +121,22 @@ export function ExpenseForm({
           </Select>
         </Field>
         <Field label="Amount (USD)" required error={errors.amount}>
-          <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.00"
+          />
         </Field>
         <Field label="Vehicle" hint="Optional — leave blank for non-vehicle costs.">
           <Select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             <option value="">None</option>
             {activeVehicles.map((v) => (
               <option key={v.id} value={v.id}>
-                {[v.year, v.make, v.model].filter(Boolean).join(' ')} {v.license_plate ? `· ${v.license_plate}` : ''}
+                {[v.year, v.make, v.model].filter(Boolean).join(' ')}{' '}
+                {v.license_plate ? `· ${v.license_plate}` : ''}
               </option>
             ))}
           </Select>

@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Link } from 'react-router-dom';
-import { Calculator, Car, FileWarning, Fuel, Gauge, Receipt, Route, ShieldAlert, TrendingUp, Wrench } from 'lucide-react';
+import {
+  Calculator,
+  Car,
+  FileWarning,
+  Fuel,
+  Gauge,
+  Receipt,
+  Route,
+  ShieldAlert,
+  TrendingUp,
+  Wrench,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useDashboardData } from '@/hooks/useDashboard';
 import { useMaintenanceDue } from '@/hooks/useMaintenance';
@@ -27,8 +30,18 @@ import { Select } from '@/components/ui/select';
 import { PageLoader } from '@/components/ui/spinner';
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 function expiryNote(days: number, date: string): string {
@@ -46,8 +59,13 @@ export function DashboardPage() {
   const { trips, expenses } = useDashboardData(year);
   const maintenanceDue = useMaintenanceDue();
   const docsExpiring = useDocumentsExpiring();
-  const { data: vehicles } = useVehicles();
-  const isLoading = trips.isLoading || expenses.isLoading;
+  const { data: vehicles, isLoading: vehiclesLoading } = useVehicles();
+  const isLoading =
+    trips.isLoading ||
+    expenses.isLoading ||
+    vehiclesLoading ||
+    maintenanceDue.isLoading ||
+    docsExpiring.isLoading;
 
   const isCurrentYear = year === now.getFullYear();
   const monthIdx = isCurrentYear ? now.getMonth() : -1;
@@ -70,19 +88,32 @@ export function DashboardPage() {
     (d) => d.is_due && (entity === 'all' || d.entity_id === entity),
   );
   const expiringDocs = (docsExpiring.data ?? []).filter(
-    (d) => d.days_until_expiration <= EXPIRATION_WINDOW_DAYS && (entity === 'all' || d.entity_id === entity),
+    (d) =>
+      d.days_until_expiration <= EXPIRATION_WINDOW_DAYS &&
+      (entity === 'all' || d.entity_id === entity),
   );
   const vehicleAlerts = (vehicles ?? [])
     .filter((v) => entity === 'all' || v.entity_id === entity)
     .flatMap((v) => {
-      const label = [v.year, v.make, v.model].filter(Boolean).join(' ') || v.license_plate || 'Vehicle';
+      const label =
+        [v.year, v.make, v.model].filter(Boolean).join(' ') || v.license_plate || 'Vehicle';
       const items: { key: string; primary: string; secondary: string; days: number }[] = [];
       const ins = daysUntil(v.insurance_expiration);
       if (v.insurance_expiration && ins != null && ins <= EXPIRATION_WINDOW_DAYS)
-        items.push({ key: v.id + 'i', primary: `${label} — Insurance`, secondary: expiryNote(ins, v.insurance_expiration), days: ins });
+        items.push({
+          key: v.id + 'i',
+          primary: `${label} — Insurance`,
+          secondary: expiryNote(ins, v.insurance_expiration),
+          days: ins,
+        });
       const reg = daysUntil(v.registration_expiration);
       if (v.registration_expiration && reg != null && reg <= EXPIRATION_WINDOW_DAYS)
-        items.push({ key: v.id + 'r', primary: `${label} — Registration`, secondary: expiryNote(reg, v.registration_expiration), days: reg });
+        items.push({
+          key: v.id + 'r',
+          primary: `${label} — Registration`,
+          secondary: expiryNote(reg, v.registration_expiration),
+          days: reg,
+        });
       return items;
     })
     .sort((a, b) => a.days - b.days);
@@ -143,8 +174,18 @@ export function DashboardPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard label="Vehicle costs (YTD)" value={formatCurrency(metrics.vehicleCostsYTD)} icon={Car} tone="slate" />
-            <StatCard label="Total expenses (YTD)" value={formatCurrency(metrics.totalExpensesYTD)} icon={Receipt} tone="slate" />
+            <StatCard
+              label="Vehicle costs (YTD)"
+              value={formatCurrency(metrics.vehicleCostsYTD)}
+              icon={Car}
+              tone="slate"
+            />
+            <StatCard
+              label="Total expenses (YTD)"
+              value={formatCurrency(metrics.totalExpensesYTD)}
+              icon={Receipt}
+              tone="slate"
+            />
             <StatCard
               label="Net est. deduction − fuel"
               value={formatCurrency(metrics.deductionYTD - metrics.fuelCostsYTD)}
@@ -203,13 +244,20 @@ export function DashboardPage() {
               <CardContent>
                 <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={metrics.monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <BarChart
+                      data={metrics.monthly}
+                      margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} />
                       <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
                       <Tooltip
                         formatter={(v: number) => [formatMiles(v), 'Business miles']}
-                        contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+                        contentStyle={{
+                          borderRadius: 8,
+                          border: '1px solid #e2e8f0',
+                          fontSize: 12,
+                        }}
                       />
                       <Bar dataKey="business_miles" fill="#059669" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -231,7 +279,9 @@ export function DashboardPage() {
                       <li key={b.entity_id}>
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium text-slate-700">{b.entity_name}</span>
-                          <span className="tabular-nums text-slate-500">{formatMiles(b.total_miles)}</span>
+                          <span className="tabular-nums text-slate-500">
+                            {formatMiles(b.total_miles)}
+                          </span>
                         </div>
                         <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
                           <div
@@ -242,7 +292,8 @@ export function DashboardPage() {
                           />
                         </div>
                         <p className="mt-1 text-xs text-slate-500">
-                          {formatMiles(b.business_miles)} business · {formatCurrency(b.deduction)} est. deduction
+                          {formatMiles(b.business_miles)} business · {formatCurrency(b.deduction)}{' '}
+                          est. deduction
                         </p>
                       </li>
                     ))}
@@ -253,8 +304,8 @@ export function DashboardPage() {
           </div>
 
           <p className="text-xs text-slate-400">
-            IRS deduction figures are estimates based on the editable mileage rates in Settings. Confirm rates and
-            category classifications with your tax advisor.
+            IRS deduction figures are estimates based on the editable mileage rates in Settings.
+            Confirm rates and category classifications with your tax advisor.
           </p>
         </div>
       )}
@@ -294,7 +345,10 @@ function AttentionBlock({
           ))}
         </ul>
       )}
-      <Link to={to} className="mt-2 inline-block text-xs font-medium text-emerald-700 hover:underline">
+      <Link
+        to={to}
+        className="mt-2 inline-block text-xs font-medium text-emerald-700 hover:underline"
+      >
         View all →
       </Link>
     </div>

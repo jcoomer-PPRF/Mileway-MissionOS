@@ -6,6 +6,7 @@ import { TripCategoriesSettings } from '@/components/settings/TripCategoriesSett
 import { ExpenseCategoriesSettings } from '@/components/settings/ExpenseCategoriesSettings';
 import { MileageRatesSettings } from '@/components/settings/MileageRatesSettings';
 import { UsersSettings } from '@/components/settings/UsersSettings';
+import { InvitationsSettings } from '@/components/settings/InvitationsSettings';
 import {
   DocumentTypesSettings,
   JobTitlesSettings,
@@ -23,6 +24,7 @@ const TABS = [
   { id: 'document_types', label: 'Document types' },
   { id: 'job_titles', label: 'Job titles' },
   { id: 'users', label: 'Users' },
+  { id: 'invitations', label: 'Invitations' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -32,7 +34,10 @@ export function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Settings" subtitle="Entities, categories, mileage rates, and user roles." />
+      <PageHeader
+        title="Settings"
+        subtitle="Entities, categories, mileage rates, and user roles."
+      />
 
       <div className="mb-6 flex flex-wrap gap-1 border-b border-slate-200">
         {TABS.map((t) => (
@@ -60,6 +65,7 @@ export function SettingsPage() {
       {tab === 'document_types' && <DocumentTypesSettings />}
       {tab === 'job_titles' && <JobTitlesSettings />}
       {tab === 'users' && <UsersSettings />}
+      {tab === 'invitations' && <InvitationsSettings />}
     </div>
   );
 }

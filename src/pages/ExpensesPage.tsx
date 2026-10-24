@@ -29,7 +29,7 @@ export function ExpensesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<ExpenseDetail | null>(null);
 
-  const canEdit = (x: ExpenseDetail) => canEditAll || x.created_by === profile?.id;
+  const canEdit = (x: ExpenseDetail) => canEditAll || (canWrite && x.created_by === profile?.id);
   const filtered = useMemo(
     () => (expenses ?? []).filter((x) => entityFilter === 'all' || x.entity_id === entityFilter),
     [expenses, entityFilter],
@@ -59,11 +59,20 @@ export function ExpensesPage() {
 
   const columns = useMemo<ColumnDef<ExpenseDetail>[]>(
     () => [
-      { accessorKey: 'expense_date', header: 'Date', cell: (c) => formatDate(c.getValue<string>()) },
+      {
+        accessorKey: 'expense_date',
+        header: 'Date',
+        cell: (c) => formatDate(c.getValue<string>()),
+      },
       {
         accessorKey: 'entity_name',
         header: 'Entity',
-        cell: (c) => <EntityBadge name={c.row.original.entity_name} isPrimary={c.row.original.entity_is_primary} />,
+        cell: (c) => (
+          <EntityBadge
+            name={c.row.original.entity_name}
+            isPrimary={c.row.original.entity_is_primary}
+          />
+        ),
       },
       { accessorKey: 'category_name', header: 'Category' },
       { accessorKey: 'vehicle_label', header: 'Vehicle', cell: (c) => c.getValue<string>() || '—' },
@@ -79,7 +88,11 @@ export function ExpensesPage() {
         enableSorting: false,
         cell: (c) =>
           c.row.original.receipt_path ? (
-            <Button variant="ghost" size="sm" onClick={() => viewReceipt(c.row.original.receipt_path!)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => viewReceipt(c.row.original.receipt_path!)}
+            >
               <FileText className="h-4 w-4" /> View
             </Button>
           ) : (
@@ -93,10 +106,20 @@ export function ExpensesPage() {
         cell: (c) =>
           canEdit(c.row.original) ? (
             <div className="flex justify-end gap-1">
-              <Button variant="ghost" size="icon" onClick={() => openEdit(c.row.original)} aria-label="Edit">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openEdit(c.row.original)}
+                aria-label="Edit"
+              >
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => handleDelete(c.row.original)} aria-label="Delete">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(c.row.original)}
+                aria-label="Delete"
+              >
                 <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
             </div>
@@ -104,7 +127,7 @@ export function ExpensesPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile?.id, canEditAll],
+    [profile?.id, canEditAll, canWrite],
   );
 
   return (
@@ -138,7 +161,11 @@ export function ExpensesPage() {
         )}
       </Card>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit expense' : 'Add expense'}>
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editing ? 'Edit expense' : 'Add expense'}
+      >
         <ExpenseForm
           initial={
             editing

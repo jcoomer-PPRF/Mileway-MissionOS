@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "tests/**/*.ts",
+    "supabase/functions/set-user-active/synchronize.ts",
+    "supabase/functions/set-user-active/index.ts"
+  ]
+}

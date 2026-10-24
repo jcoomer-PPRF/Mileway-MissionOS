@@ -46,7 +46,8 @@ export function MaintenanceScheduleForm({
     if (!typeId) errs.maintenance_type_id = 'Select a type';
     const miles = numOrNull(intervalMiles);
     const months = numOrNull(intervalMonths);
-    if (miles == null && months == null) errs.interval_miles = 'Set a mileage and/or month interval';
+    if (miles == null && months == null)
+      errs.interval_miles = 'Set a mileage and/or month interval';
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
@@ -63,7 +64,9 @@ export function MaintenanceScheduleForm({
         notes: strOrNull(notes),
       });
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to save schedule (one per vehicle + type).');
+      setSubmitError(
+        err instanceof Error ? err.message : 'Failed to save schedule (one per vehicle + type).',
+      );
     } finally {
       setBusy(false);
     }
@@ -75,45 +78,81 @@ export function MaintenanceScheduleForm({
         <Field label="Vehicle" required error={errors.vehicle_id}>
           <Select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             <option value="">Select…</option>
-            {(vehicles ?? []).filter((v) => v.is_active || v.id === vehicleId).map((v) => (
-              <option key={v.id} value={v.id}>
-                {[v.year, v.make, v.model].filter(Boolean).join(' ')} {v.license_plate ? `· ${v.license_plate}` : ''}
-              </option>
-            ))}
+            {(vehicles ?? [])
+              .filter((v) => v.is_active || v.id === vehicleId)
+              .map((v) => (
+                <option key={v.id} value={v.id}>
+                  {[v.year, v.make, v.model].filter(Boolean).join(' ')}{' '}
+                  {v.license_plate ? `· ${v.license_plate}` : ''}
+                </option>
+              ))}
           </Select>
         </Field>
         <Field label="Service type" required error={errors.maintenance_type_id}>
           <Select value={typeId} onChange={(e) => setTypeId(e.target.value)}>
             <option value="">Select…</option>
-            {(types ?? []).filter((t) => t.is_active || t.id === typeId).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
+            {(types ?? [])
+              .filter((t) => t.is_active || t.id === typeId)
+              .map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
           </Select>
         </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Every (miles)" error={errors.interval_miles} hint="Leave blank if not mileage-based.">
-          <Input type="number" min="1" value={intervalMiles} onChange={(e) => setIntervalMiles(e.target.value)} placeholder="5000" />
+        <Field
+          label="Every (miles)"
+          error={errors.interval_miles}
+          hint="Leave blank if not mileage-based."
+        >
+          <Input
+            type="number"
+            min="1"
+            value={intervalMiles}
+            onChange={(e) => setIntervalMiles(e.target.value)}
+            placeholder="5000"
+          />
         </Field>
         <Field label="Every (months)" hint="Leave blank if not time-based.">
-          <Input type="number" min="1" value={intervalMonths} onChange={(e) => setIntervalMonths(e.target.value)} placeholder="6" />
+          <Input
+            type="number"
+            min="1"
+            value={intervalMonths}
+            onChange={(e) => setIntervalMonths(e.target.value)}
+            placeholder="6"
+          />
         </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Last service date">
+        <Field
+          label="Starting service date"
+          hint="Used until a later service is logged in Service history."
+        >
           <Input type="date" value={lastDate} onChange={(e) => setLastDate(e.target.value)} />
         </Field>
-        <Field label="Last service odometer">
-          <Input type="number" step="0.1" min="0" value={lastOdo} onChange={(e) => setLastOdo(e.target.value)} />
+        <Field
+          label="Starting service odometer"
+          hint="Later service readings update the due calculation automatically."
+        >
+          <Input
+            type="number"
+            step="0.1"
+            min="0"
+            value={lastOdo}
+            onChange={(e) => setLastOdo(e.target.value)}
+          />
         </Field>
       </div>
 
       <Field label="Status">
-        <Select value={active ? 'active' : 'inactive'} onChange={(e) => setActive(e.target.value === 'active')}>
+        <Select
+          value={active ? 'active' : 'inactive'}
+          onChange={(e) => setActive(e.target.value === 'active')}
+        >
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </Select>

@@ -22,3 +22,8 @@ coverage
 # Capacitor native projects (added in a later phase)
 /android
 /ios
+
+# Browser regression artifacts
+playwright-report
+test-results
+supabase/.temp/
