@@ -57,6 +57,14 @@ roles at the database layer** — defense-in-depth that matters for an auditor-f
 
 ---
 
+## Dependency security
+
+See [MD01 dependency remediation](DEPENDENCY_REMEDIATION.md) for the patched
+build/router dependencies, official vendored SheetJS package, parser override,
+and regression coverage. `npm run audit:dependencies` checks the full dependency
+tree; CI fails for known findings at any severity. Installation remains
+`npm ci --ignore-scripts`. Publication requires a separate release decision.
+
 ## Getting started
 
 ### 1. Install

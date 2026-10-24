@@ -29,6 +29,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts
+      - run: npm run audit:dependencies
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

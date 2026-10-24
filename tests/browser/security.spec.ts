@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import * as XLSX from 'xlsx';
 import { mockBackend, ownerId } from './fixtures/backend';
 
 test('switching accounts removes cached personal documents', async ({ page }) => {
@@ -61,4 +62,32 @@ test('personal file download authenticates each request without a signed URL', a
   );
   expect(downloads).toHaveLength(2);
   expect(downloads[0].url).not.toBe(downloads[1].url);
+});
+
+
+test('Excel workbook preserves all report rows, numeric cells and literal user text', async ({ page }, testInfo) => {
+  const note = '=1+1 <FICTIONAL> & "quoted"';
+  await mockBackend(page, { tripCount: 1207, tripNotes: note });
+  await page.goto('/reports');
+  await expect(page.getByText('Showing 25 of 1207 rows. Export for the full report.')).toBeVisible();
+  const ready = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Full workbook (Excel)', exact: true }).click();
+  const download = await ready;
+  expect(download.suggestedFilename()).toMatch(/^missionos-fleet-export-.*\.xlsx$/);
+  const saved = testInfo.outputPath('full-workbook.xlsx');
+  await download.saveAs(saved);
+  const workbook = XLSX.read(await readFile(saved), { type: 'buffer', cellStyles: true });
+  expect(workbook.SheetNames).toEqual(['Trips', 'Vehicles', 'Expenses', 'Maintenance']);
+  const trips = workbook.Sheets.Trips;
+  expect(trips['!ref']).toBe('A1:M1208');
+  expect(trips.I2.t).toBe('n');
+  expect(trips.I2.v).toBe(10);
+  expect(trips.I1208.v).toBe(10);
+  expect(trips.M2.t).toBe('s');
+  expect(trips.M2.v).toBe(note);
+  expect(trips.M2.f).toBeUndefined();
+  expect(trips['!cols']?.[0].width).toBeGreaterThan(0);
+  for (const name of ['Vehicles', 'Expenses', 'Maintenance']) {
+    expect(workbook.Sheets[name].A1.t).toBe('s');
+  }
 });

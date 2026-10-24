@@ -19,8 +19,16 @@ async function javascript(directory) {
 const preview = await javascript('dist-md01');
 const application = await javascript('dist');
 const html = await readFile('dist-md01/demo.html', 'utf8');
+// Vite 7 escapes apostrophes in attributes; inspect the policy value that the
+// browser receives rather than requiring a particular HTML serialization.
+const cspAttribute = html.match(/<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]*)"/i)?.[1];
+assert.ok(cspAttribute, 'Compiled preview must include its CSP meta tag');
+const policy = cspAttribute.replace(/&#(?:x([a-f\d]+)|(\d+));/gi, (_, hex, decimal) =>
+  String.fromCodePoint(Number.parseInt(hex ?? decimal, hex ? 16 : 10)),
+);
+
 assert.ok(
-  html.includes("connect-src 'none'"),
+  policy.includes("connect-src 'none'"),
   'Compiled preview must disable outbound connections',
 );
 assert.ok(preview.includes('TEST PERSON ALPHA'), 'Expected fictional fixture in preview');
