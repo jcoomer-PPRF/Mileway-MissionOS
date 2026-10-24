@@ -9,6 +9,11 @@ require this hosted pass. The completed staging results and remaining provider c
 
 For an existing project, confirm applied migrations and take a restorable database backup
 plus a Storage inventory/backup. Apply only migrations not already applied.
+Start with the read-only `supabase/preflight/catalog.sql`. Once the schema through
+`0010` is confirmed, `supabase/preflight/integrity.sql` gives aggregate integrity
+checks without returning user emails or attachment paths. No migration history does
+not prove the database is empty. See [PRODUCTION_RELEASE.md](PRODUCTION_RELEASE.md)
+for the post-merge hosting and release preparation.
 Review these queries before `0012` and `0013`; correct records deliberately, preserving the
 audit history. Do not silently recalculate historical reimbursements.
 
