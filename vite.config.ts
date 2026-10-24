@@ -36,6 +36,9 @@ export default defineConfig(({ mode }) => ({
   },
   server: { port: 5173 },
   build: {
+    // Preserve Vite 5's transpilation targets rather than silently narrowing
+    // browser compatibility when upgrading the build tool.
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
     outDir: mode === 'md01' ? 'dist-md01' : 'dist',
     rollupOptions: {
       input: path.resolve(__dirname, mode === 'md01' ? 'demo.html' : 'index.html'),

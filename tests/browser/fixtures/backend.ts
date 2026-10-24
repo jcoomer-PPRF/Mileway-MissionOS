@@ -35,6 +35,7 @@ export async function mockBackend(
   options: {
     failTrips?: boolean;
     tripCount?: number;
+    tripNotes?: string;
     role?: string;
     signedIn?: boolean;
     active?: boolean;
@@ -140,7 +141,7 @@ export async function mockBackend(
         applied_rate: 0.7,
         deduction_amount: 7,
         destination: 'Test location',
-        notes: null,
+        notes: options.tripNotes ?? null,
       }));
     }
     const offset = Number(url.searchParams.get('offset') ?? 0);

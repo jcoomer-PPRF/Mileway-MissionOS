@@ -158,3 +158,12 @@ test('typed markup remains text in the note preview', async ({ page }) => {
   await expect(page.getByTestId('note-preview')).toContainText(text);
   expect(await page.evaluate(() => 'md01Injected' in window)).toBe(false);
 });
+
+
+test('compiled preview retains its browser-parsed outbound connection policy', async ({ page }, testInfo) => {
+  test.skip(!testInfo.config.metadata.compiledPreview, 'Policy is injected during the compiled preview build.');
+  await page.goto('/demo.html');
+  await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute(
+    'content', /(?:^|;)\s*connect-src 'none'(?:;|$)/,
+  );
+});
