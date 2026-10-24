@@ -4,7 +4,33 @@ Working release record and remaining plan, 2026-10-24. PR #1 was merged as
 `d35ca6963a094dbaea9436a96c6005f6ea8e8619`; its
 [post-merge CI passed](https://github.com/jcoomer-PPRF/Mileway-MissionOS/actions/runs/40048249299).
 The dated staging evidence remains a pre-merge snapshot. The original project's
-backend is now initialized; the frontend and custom domain are not published.
+backend is initialized and the frontend is published at
+[peerpoint-missionos.pages.dev](https://peerpoint-missionos.pages.dev).
+The custom domain is registered with Cloudflare and awaits external DNS.
+
+## Cloudflare deployment — 2026-10-24
+
+The user connected the Cloudflare plugin after creating the account. The project
+`peerpoint-missionos` was created in the verified account and its seven existing
+static files uploaded using a short-lived project upload capability. Cloudflare
+confirmed production deployment `9fea3f0b-3440-4a15-8688-b9bad476cc91` successful at
+2026-10-24T01:34:34Z, with source commit
+`d35ca6963a094dbaea9436a96c6005f6ea8e8619` and no Pages Functions. No Git-based
+automatic deployments or paid services were enabled.
+
+TLS-verified HTTP checks with a browser user agent confirmed `/`, `/login`, and
+`/reports` serve the exact uploaded HTML, and all six JS/CSS assets match the local
+build byte for byte. Cloudflare's browser integrity check rejected a Python default
+user agent (1010); the same requests with browser headers passed. Direct Chromium
+rendering in the execution environment could not complete because its proxy trust
+configuration reported a certificate authority error. Authenticated live acceptance
+and email delivery remain pending; the HTTP checks do not claim those passed.
+
+`missionos.peerpoint.org` was added to this Pages project's custom domains before
+any DNS change. Cloudflare reports **CNAME record not set**. The account has no
+Cloudflare DNS zone for `peerpoint.org`, and public nameservers remain external.
+Add the CNAME below at the existing authoritative DNS provider. This requires no
+root-domain transfer or nameserver change.
 
 ## Completed backend preparation
 
@@ -41,9 +67,9 @@ Recommended app address: **`https://missionos.peerpoint.org`** on a separate sta
 app host. The existing Vite app builds to `dist/`; Squarespace continues serving
 the main website. A website link can open the app directly.
 
-The user created a Cloudflare account for this setup. The session currently has no
-Cloudflare connector, authenticated deployment identity, or connected browser;
-dashboard actions require account-side access. Its custom-subdomain setup supports an external DNS provider;
+Cloudflare's connected API now handles Pages deployment and custom-domain setup.
+Squarespace DNS and Supabase Auth URL settings remain dashboard-side actions with
+the current connections. Pages custom-subdomain setup supports an external DNS provider;
 moving the root domain or changing nameservers is unnecessary.
 
 Public DNS inspection on 2026-10-24 found `www` pointing to
@@ -51,7 +77,7 @@ Public DNS inspection on 2026-10-24 found `www` pointing to
 `missionos.peerpoint.org`. Public DNS does not prove which account controls the
 domain; confirm the authoritative DNS dashboard before editing.
 
-Prepare the host with these settings:
+For future builds, use these settings:
 
 | Setting | Value |
 | --- | --- |
@@ -81,10 +107,10 @@ Only then add this record at the current authoritative DNS provider:
 
 | Type | Host | Target |
 | --- | --- | --- |
-| CNAME | `missionos` | The actual assigned `<project>.pages.dev` hostname |
+| CNAME | `missionos` | `peerpoint-missionos.pages.dev` |
 
-The target is a placeholder until a project exists. Follow the subdomain-specific
-Squarespace instructions; root-domain replacement instructions do not apply.
+The target is the assigned hostname of the created Pages project. Follow the
+subdomain-specific Squarespace instructions; root-domain replacement instructions do not apply.
 Preserve the website's root/`www` records, mail records, and nameservers. Verify
 DNS and the issued HTTPS certificate before changing Supabase redirect settings.
 An iframe embed is unnecessary for this setup.
@@ -142,8 +168,10 @@ new privileged account automatically.
 
 ## Live configuration and acceptance
 
-Once the app origin is assigned, set Supabase Site URL to that HTTPS origin and
-allow only intended redirect origins. The Google OAuth callback is the selected
+Set Supabase Site URL to `https://missionos.peerpoint.org` in Authentication → URL
+Configuration, and allow that same intended redirect origin. The connected Supabase
+tools do not expose Auth configuration updates; this remains a dashboard action.
+Complete it and verify custom-domain HTTPS before first signup. The Google OAuth callback is the selected
 Supabase project's `/auth/v1/callback`, while the application's post-login redirect
 is its own origin. Configure the intended Google client and real email delivery,
 then test confirmation and sign-in with a consenting human mailbox. Staging's

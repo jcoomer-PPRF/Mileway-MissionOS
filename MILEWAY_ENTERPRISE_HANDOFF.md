@@ -3,7 +3,8 @@
 **Status, 2026-10-24:** PR #1 merged to `main` as
 `d35ca6963a094dbaea9436a96c6005f6ea8e8619`; post-merge CI passed. Hosted staging
 validation is recorded in `STAGING_VALIDATION.md`, a dated pre-merge snapshot.
-The original backend is initialized; frontend publication is pending. Hosting and preflight preparation are in
+The backend is initialized and the frontend is published at `peerpoint-missionos.pages.dev`;
+custom-domain DNS, Auth URL configuration, and live acceptance remain pending. Hosting and preflight preparation are in
 `PRODUCTION_RELEASE.md`. The source, README, and migration runbook describe
 the current behavior. Sections 4–5 preserve the Phase 1/2 history; later hardening supersedes their
 bootstrap and file-access behavior.
@@ -177,8 +178,8 @@ finish Google/email provider checks and the production setup in
 `PRODUCTION_RELEASE.md` and `MILEWAY_MIGRATION_RUNBOOK.md`. The original project was
 resumed, confirmed empty, and initialized on 2026-10-24 with all 15 migrations and
 the matching Edge Function. The first owner invitation is pending, and current
-2026 date-effective reference rates are configured. The frontend build is ready;
-Cloudflare account-side deployment, DNS, Auth URLs/provider verification, and entity
+2026 date-effective reference rates are configured. The frontend is deployed on
+Cloudflare Pages; external DNS, Auth URLs/provider verification, and entity
 configuration remain. Core password Auth, Storage HTTP, Edge runtime, outage recovery, and real browser flows have
 passed on isolated staging. Google and email-delivery verification still need provider setup. Existing dependency
 advisories remain a separate maintenance task. No reminder delivery or residents module was added.
