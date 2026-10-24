@@ -3,7 +3,7 @@
 **Status, 2026-10-24:** PR #1 merged to `main` as
 `d35ca6963a094dbaea9436a96c6005f6ea8e8619`; post-merge CI passed. Hosted staging
 validation is recorded in `STAGING_VALIDATION.md`, a dated pre-merge snapshot.
-Production deployment is pending. Hosting and preflight preparation are in
+The original backend is initialized; frontend publication is pending. Hosting and preflight preparation are in
 `PRODUCTION_RELEASE.md`. The source, README, and migration runbook describe
 the current behavior. Sections 4–5 preserve the Phase 1/2 history; later hardening supersedes their
 bootstrap and file-access behavior.
@@ -175,9 +175,11 @@ Its source tree is `e80b77c3e24ccb70b22c081994367805af0372df`, and post-merge CI
 **Release work still required:** review completed core hosted checks in `STAGING_VALIDATION.md`,
 finish Google/email provider checks and the production setup in
 `PRODUCTION_RELEASE.md` and `MILEWAY_MIGRATION_RUNBOOK.md`. The original project was
-resumed and inspected on 2026-10-24: it is empty and needs a fresh installation.
-Select the app host, configure production values, and deploy the matching schema,
-Edge Function, and frontend through the release process. Core password Auth, Storage HTTP, Edge runtime, outage recovery, and real browser flows have
+resumed, confirmed empty, and initialized on 2026-10-24 with all 15 migrations and
+the matching Edge Function. The first owner invitation is pending, and current
+2026 date-effective reference rates are configured. The frontend build is ready;
+Cloudflare account-side deployment, DNS, Auth URLs/provider verification, and entity
+configuration remain. Core password Auth, Storage HTTP, Edge runtime, outage recovery, and real browser flows have
 passed on isolated staging. Google and email-delivery verification still need provider setup. Existing dependency
 advisories remain a separate maintenance task. No reminder delivery or residents module was added.
 

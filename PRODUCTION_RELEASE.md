@@ -1,10 +1,38 @@
 # MissionOS production release preparation
 
-Working release plan, 2026-10-24. PR #1 was merged as
+Working release record and remaining plan, 2026-10-24. PR #1 was merged as
 `d35ca6963a094dbaea9436a96c6005f6ea8e8619`; its
 [post-merge CI passed](https://github.com/jcoomer-PPRF/Mileway-MissionOS/actions/runs/40048249299).
-The dated staging evidence remains a pre-merge snapshot. This document prepares
-the next release; it is not a claim that production has been deployed.
+The dated staging evidence remains a pre-merge snapshot. The original project's
+backend is now initialized; the frontend and custom domain are not published.
+
+## Completed backend preparation
+
+The original project was resumed, inspected while healthy, and confirmed empty
+before installing all 15 migrations from the merged source, each separately.
+`set-user-active` version 1 is deployed with JWT verification enabled. Both buckets
+are private, all 20 application tables have RLS, all 27 app functions deny anonymous
+execution, and client roles cannot execute trigger functions or the two Auth workers.
+The security advisor reports the same reviewed 13 authenticated-definer warnings
+and intentional lock-table policy notice described in the staging record.
+
+The user supplied the first owner email privately; its unconsumed invitation expires
+2026-10-31 at approximately 01:19 UTC. This creates no Auth account and sends no
+email. There are no application users or operational records yet. Legal entity
+values and category classifications still require owner configuration.
+
+The fresh-install 2026 reference rates were set to the date-effective values below
+and read back. The production frontend was built successfully against this project
+with its enabled publishable key. Runtime source and migrations are unchanged from
+the merged commit. The seven-file static upload archive is
+`MissionOS-production-frontend-2026-10-24.zip`, SHA256
+`d9de93078d3759644e9777bfcdad5d8dc7fa47ec785583ff104e82f9baef66f1`.
+
+Four HTTP smoke checks passed: Auth settings responded, anonymous profile reads
+returned no rows, the private attachment helper rejected anonymous calls, and the
+account function rejected a request without a user JWT. Email login is enabled
+with confirmation required; Google login is currently disabled. These are setup
+checks, not completed live sign-in, email-delivery, or user acceptance tests.
 
 ## Hosting alongside Squarespace
 
@@ -13,8 +41,9 @@ Recommended app address: **`https://missionos.peerpoint.org`** on a separate sta
 app host. The existing Vite app builds to `dist/`; Squarespace continues serving
 the main website. A website link can open the app directly.
 
-Cloudflare Pages is a suitable hosting option, pending the account owner's choice
-and account access. Its custom-subdomain setup supports an external DNS provider;
+The user created a Cloudflare account for this setup. The session currently has no
+Cloudflare connector, authenticated deployment identity, or connected browser;
+dashboard actions require account-side access. Its custom-subdomain setup supports an external DNS provider;
 moving the root domain or changing nameservers is unnecessary.
 
 Public DNS inspection on 2026-10-24 found `www` pointing to
@@ -73,9 +102,9 @@ The original candidate production project is `pwcrmerycnosgxegdnqj` in
 After it was healthy, the catalog, migration list, and Edge Function list confirmed
 no public application tables, app roles, migrations, Auth users, Storage buckets,
 Storage objects, or Edge Functions. The security advisor returned no lints for
-this empty project. This is a fresh-install candidate; no existing MissionOS
-records need an upgrade. Its schema and application configuration remain unchanged.
-Recheck before installation because other administrators can change the project.
+that empty project. It was then initialized as described above; no historical
+MissionOS records were upgraded. Recheck before future changes because other
+administrators can change the project.
 
 Run `supabase/preflight/catalog.sql` first with operator access. It reports schema,
 role labels, bucket visibility, object count, and Auth user count without returning
@@ -91,8 +120,9 @@ not backups or an automatic release decision. A database with no migration histo
 can still contain manually applied tables; do not blindly push all migrations.
 
 Both scripts were run successfully on hosted staging on 2026-10-24; the catalog
-script also ran successfully on the resumed original project. The integrity script
-was intentionally not run against the empty original database. Staging has
+script also ran successfully on the resumed original project. After installation,
+both scripts ran successfully there and the integrity check was repeated after
+reference-rate configuration. Staging has
 no conflicting scopes, duplicate document paths, missing referenced files, or
 inconsistent odometer trips. Its two entity records and seeded 2026 rates still
 need real configuration. Detailed operator responses belong in the private release
@@ -120,7 +150,7 @@ then test confirmation and sign-in with a consenting human mailbox. Staging's
 Admin-confirmed fictional accounts did not validate email delivery or Google login.
 
 Confirm legal names/EINs and category classifications with the responsible owner.
-The 2026 seeded rates are placeholders. The IRS table checked on 2026-10-24 lists
+The original seed files contain 2026 placeholders. The IRS table checked on 2026-10-24 lists
 two date ranges, in dollars per mile:
 
 | Effective date | Business | Medical | Charitable |
@@ -132,7 +162,9 @@ Source: [IRS standard mileage rates](https://www.irs.gov/tax-professionals/stand
 These are reference rates, not a determination of eligibility or an organization's
 reimbursement policy. Review any existing reports before changing effective-dated
 rows: the reporting views derive estimates from those rows, so updating a historical
-rate changes later exports of the same trips. No rate changes are applied by this plan.
+rate changes later exports of the same trips. Only the newly initialized original
+project was configured with these rates, after asserting that it had no profiles or
+trips. Staging's historical test configuration was preserved.
 
 After the matched backend/frontend release, validate HTTPS and direct navigation
 to `/reports`, real sign-in, a fictional upload/download, role restrictions, account
