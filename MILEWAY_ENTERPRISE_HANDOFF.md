@@ -4,7 +4,8 @@
 `d35ca6963a094dbaea9436a96c6005f6ea8e8619`; post-merge CI passed. Hosted staging
 validation is recorded in `STAGING_VALIDATION.md`, a dated pre-merge snapshot.
 The backend is initialized and the frontend is published at `missionos.peerpoint.org`;
-Auth Site URL is verified; first-owner signup and live acceptance remain pending. Hosting and preflight preparation are in
+Auth Site URL and first-owner confirmation/sign-in are verified; broader operational
+acceptance remains pending. Hosting and preflight preparation are in
 `PRODUCTION_RELEASE.md`. The source, README, and migration runbook describe
 the current behavior. Sections 4–5 preserve the Phase 1/2 history; later hardening supersedes their
 bootstrap and file-access behavior.
@@ -177,7 +178,8 @@ Its source tree is `e80b77c3e24ccb70b22c081994367805af0372df`, and post-merge CI
 finish Google/email provider checks and the production setup in
 `PRODUCTION_RELEASE.md` and `MILEWAY_MIGRATION_RUNBOOK.md`. The original project was
 resumed, confirmed empty, and initialized on 2026-10-24 with all 15 migrations and
-the matching Edge Function. The first owner invitation is pending, and current
+the matching Edge Function. The first owner invitation is consumed by a confirmed,
+active owner who has signed in, and current
 2026 date-effective reference rates are configured. The frontend is deployed on
 Cloudflare Pages and the custom domain is active; email/Google provider verification and entity
 configuration remain. Core password Auth, Storage HTTP, Edge runtime, outage recovery, and real browser flows have

@@ -7,7 +7,16 @@ The dated staging evidence remains a pre-merge snapshot. The original project's
 backend is initialized and the frontend is published at
 [peerpoint-missionos.pages.dev](https://peerpoint-missionos.pages.dev).
 The custom domain is active at [missionos.peerpoint.org](https://missionos.peerpoint.org).
-Supabase Site URL is verified; first-owner signup and authenticated live acceptance remain pending.
+Supabase Site URL, first-owner email confirmation, and initial sign-in are verified.
+Operational acceptance and organization-specific configuration remain open.
+
+## First owner accepted — 2026-10-24
+
+The owner completed signup and email confirmation and opened the live dashboard on
+an iPhone. Backend readback confirms an active `owner` profile, confirmed email,
+a recorded sign-in, and a consumed invitation. This validates the initial human
+admission/email/sign-in path. It does not claim that live uploads, account changes,
+report exports, or every operational screen have passed user acceptance.
 
 ## Cloudflare deployment — 2026-10-24
 
@@ -44,10 +53,10 @@ execution, and client roles cannot execute trigger functions or the two Auth wor
 The security advisor reports the same reviewed 13 authenticated-definer warnings
 and intentional lock-table policy notice described in the staging record.
 
-The user supplied the first owner email privately; its unconsumed invitation expires
-2026-10-31 at approximately 01:19 UTC. This creates no Auth account and sends no
-email. There are no application users or operational records yet. Legal entity
-values and category classifications still require owner configuration.
+The user supplied the first owner email privately. The invitation was subsequently
+consumed by the confirmed owner account described above. Invitations themselves
+send no email; the signup confirmation email was successfully confirmed. Legal
+entity values and category classifications still require owner configuration.
 
 The fresh-install 2026 reference rates were set to the date-effective values below
 and read back. The production frontend was built successfully against this project
@@ -60,7 +69,8 @@ Four HTTP smoke checks passed: Auth settings responded, anonymous profile reads
 returned no rows, the private attachment helper rejected anonymous calls, and the
 account function rejected a request without a user JWT. Email login is enabled
 with confirmation required; Google login is currently disabled. These are setup
-checks, not completed live sign-in, email-delivery, or user acceptance tests.
+checks. The subsequent first-owner signup/email/sign-in result is recorded above;
+broader operational acceptance remains pending.
 
 ## Hosting alongside Squarespace
 
