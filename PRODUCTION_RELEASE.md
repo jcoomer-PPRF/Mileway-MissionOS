@@ -6,7 +6,8 @@ Working release record and remaining plan, 2026-10-24. PR #1 was merged as
 The dated staging evidence remains a pre-merge snapshot. The original project's
 backend is initialized and the frontend is published at
 [peerpoint-missionos.pages.dev](https://peerpoint-missionos.pages.dev).
-The custom domain is registered with Cloudflare and awaits external DNS.
+The custom domain is active at [missionos.peerpoint.org](https://missionos.peerpoint.org).
+Supabase Site URL configuration and authenticated live acceptance remain pending.
 
 ## Cloudflare deployment — 2026-10-24
 
@@ -27,10 +28,11 @@ configuration reported a certificate authority error. Authenticated live accepta
 and email delivery remain pending; the HTTP checks do not claim those passed.
 
 `missionos.peerpoint.org` was added to this Pages project's custom domains before
-any DNS change. Cloudflare reports **CNAME record not set**. The account has no
-Cloudflare DNS zone for `peerpoint.org`, and public nameservers remain external.
-Add the CNAME below at the existing authoritative DNS provider. This requires no
-root-domain transfer or nameserver change.
+any DNS change. The user added the CNAME at Squarespace. Public DNS confirms the
+target with TTL 1,800 seconds; Cloudflare now reports domain verification and
+certificate validation **active**. The custom-domain login page passed a
+TLS-verified exact-HTML check. The account has no Cloudflare DNS zone for
+`peerpoint.org`; nameservers remain external. No root-domain transfer was needed.
 
 ## Completed backend preparation
 
@@ -176,6 +178,10 @@ Supabase project's `/auth/v1/callback`, while the application's post-login redir
 is its own origin. Configure the intended Google client and real email delivery,
 then test confirmation and sign-in with a consenting human mailbox. Staging's
 Admin-confirmed fictional accounts did not validate email delivery or Google login.
+
+The intended Redirect URL is added. Site URL is a separate setting and still
+requires save/confirmation; the redirect allowlist does not replace it. The pending
+owner invitation and absence of Auth users/profiles were rechecked before signup.
 
 Confirm legal names/EINs and category classifications with the responsible owner.
 The original seed files contain 2026 placeholders. The IRS table checked on 2026-10-24 lists
