@@ -34,10 +34,37 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run build:md01
+      - run: npm run build:md02
       - run: node scripts/verify-md01-build.mjs
+      - run: node scripts/verify-md02-build.mjs
       - run: bash supabase/tests/run.sh mileway_ci_test
       - run: bash supabase/tests/upgrade.sh
       - run: sh supabase/tests/runner_guard.sh
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: npm run test:md01:built
+  md02-persistence:
+    # The pilot intentionally rejects TCP/hosted targets. Use a private Unix socket
+    # on macOS instead of relaxing those guards to fit the existing Docker job.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: brew install postgresql@17
+      - run: npx playwright install chromium
+      - name: Verify fresh fictional persistence, review, authorization and restore
+        run: npm run verify:md02:release
+        env:
+          MD02_PG_BIN: /opt/homebrew/opt/postgresql@17/bin
+      - name: Upload only synthetic test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: md02-fictional-verification
+          path: /private/tmp/missionos-md02-d-*-evidence/
+          retention-days: 7
+          if-no-files-found: warn

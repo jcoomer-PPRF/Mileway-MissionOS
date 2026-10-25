@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "MissionOS — Mission Delivery, Operations, and shared organizational tools.",
+  "description": "MissionOS \u2014 Mission Delivery, Operations, and shared organizational tools.",
   "scripts": {
     "dev": "vite",
     "dev:md01": "vite --mode md01 --open /demo.html",
@@ -13,10 +13,14 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.tests.json",
     "preview": "vite preview",
     "db:types": "supabase gen types typescript --linked > src/types/supabase.ts",
-    "test": "node --import ./tests/register.mjs tests/integrity.test.ts && node --import ./tests/register.mjs tests/mission-delivery.test.ts",
+    "test": "node --import ./tests/register.mjs tests/integrity.test.ts && node --import ./tests/register.mjs tests/mission-delivery.test.ts && node --import ./tests/register.mjs tests/md02-draft.test.ts && node --import ./tests/register.mjs tests/md02-output.test.ts",
     "test:e2e": "playwright test",
     "test:md01:built": "playwright test --config playwright.md01.config.ts",
-    "audit:dependencies": "npm audit --audit-level=low"
+    "audit:dependencies": "npm audit --audit-level=low",
+    "dev:md02": "vite --mode md02 --host 127.0.0.1 --port 5175 --strictPort",
+    "build:md02": "tsc --noEmit && vite build --mode md02",
+    "test:md02": "playwright test --config playwright.md02.config.ts",
+    "verify:md02:release": "node scripts/md02/verify-release.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

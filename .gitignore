@@ -28,3 +28,8 @@ coverage
 playwright-report
 test-results
 supabase/.temp/
+
+# Local MD02 training build
+dist-md02
+
+__pycache__/
