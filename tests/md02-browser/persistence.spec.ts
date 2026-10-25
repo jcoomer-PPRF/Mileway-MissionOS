@@ -85,6 +85,42 @@ async function saved(page: Page) {
   await expect(page.getByRole("status")).toHaveText("Saved");
 }
 test.describe.serial("MD02 B real local browser and database", () => {
+  test("rejected credentials show sign-in feedback and allow a successful retry", async ({
+    page,
+  }) => {
+    const account = cfg.accounts.find((a: any) => a.username === "training-unassigned");
+    await page.goto("/md02.html");
+    await page.getByLabel("Training username").fill(account.username);
+    await page.getByLabel("Training password").fill("incorrect-training-password");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByRole("alert")).toHaveText(
+      "Sign-in was not accepted. Check your training username, password and account access.",
+    );
+    await expect(page.getByLabel("Training password")).toHaveValue("");
+    await expect(page.getByLabel("Training username")).toHaveValue(account.username);
+    await expect(page.getByRole("region", { name: "SOAP note" })).toHaveCount(0);
+    expect(await page.evaluate(async () =>
+      (await (await fetch("/api/md02/session")).json()).user,
+    )).toBeNull();
+    await page.getByLabel("Training password").fill(account.password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "My Day", exact: true })).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+  test("an expired browser session retains session-ended feedback", async ({ page, context }) => {
+    await signin(page, "training-reviewer");
+    const cookie = (await context.cookies(origin + "/api/md02/session")).find((c) => c.name === "md02_session");
+    expect(cookie).toBeDefined();
+    await context.addCookies([{ ...cookie!, expires: Math.floor(Date.now() / 1000) - 60 }]);
+    expect((await context.cookies(origin + "/api/md02/session")).some((c) => c.name === "md02_session")).toBe(false);
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })));
+    await expect(page.getByRole("alert")).toHaveText(
+      "Your session ended or the signed-in account changed. Sign in again to continue.",
+    );
+    await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
+    await expect(page.getByRole("alert")).not.toContainText("Sign-in was not accepted");
+    await expect(page.getByRole("region", { name: "SOAP note" })).toHaveCount(0);
+  });
   test("guided fields and completeness persist after save and reload", async ({
     page,
     context,

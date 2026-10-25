@@ -35,7 +35,7 @@ try {
   await ready(env.MD02_BASE_URL+'/api/md02/session');
   await run('browser',process.execPath,['node_modules/@playwright/test/cli.js','test','--config','playwright.md02.config.ts','--output',evidence+'/browser-artifacts']);
   const browser=JSON.parse(await readFile(evidence+'/browser.json','utf8'));
-  if(browser.stats.expected!==24 || browser.stats.unexpected || browser.stats.skipped || browser.stats.flaky)throw Error('Expected 24 browser cases without failures, skips or retries');
+  if(browser.stats.expected!==26 || browser.stats.unexpected || browser.stats.skipped || browser.stats.flaky)throw Error('Expected 26 browser cases without failures, skips or retries');
   await run('foundation','python3',['supabase/pilots/md02/tests/run.py','--socket',root+'/socket','--port','55435','--report',evidence+'/foundation.json']);
   await run('output','python3',['supabase/pilots/md02c/tests/output.py','--config',root+'/gateway.json','--report',evidence+'/output.json']);
   for(const [name,count] of [['foundation',89],['output',24]]){const r=JSON.parse(await readFile(evidence+'/'+name+'.json','utf8'));if(r.status!=='pass'||r.count!==count)throw Error(name+' evidence count mismatch');}
@@ -47,7 +47,7 @@ try {
   await Promise.all(children.map(p=>p.exitCode!==null?null:new Promise(r=>p.once('close',r))));
   const stopped=spawnSync(pg+'/pg_ctl',['-D',root+'/pgdata','stop','-m','fast'],{encoding:'utf8'});
   const stoppedOK=stopped.status===0;
-  await writeFile(evidence+'/release-verification.json',JSON.stringify({status:passed&&stoppedOK?'pass':'fail',checked_at:new Date().toISOString(),results,counts:{browser:24,foundation:89,output:24,http:11},cluster_stopped:stoppedOK,scope:'Fresh local fictional PostgreSQL + browser + HTTP only',limitations:['Supabase Auth/JWT/PostgREST not exercised','Owner MD02 C and physical iPhone review pending','No production deployment, PHI readiness or institutional records authority established']},null,2)+'\n',{mode:0o600});
+  await writeFile(evidence+'/release-verification.json',JSON.stringify({status:passed&&stoppedOK?'pass':'fail',checked_at:new Date().toISOString(),results,counts:{browser:26,foundation:89,output:24,http:11},cluster_stopped:stoppedOK,scope:'Fresh local fictional PostgreSQL + browser + HTTP only',limitations:['Supabase Auth/JWT/PostgREST not exercised','Owner MD02 C and physical iPhone review pending','No production deployment, PHI readiness or institutional records authority established']},null,2)+'\n',{mode:0o600});
   await chmod(evidence,0o700);
   console.log('PRIVATE_LOCAL_EVIDENCE',evidence);
   if(!stoppedOK)throw Error('Owned disposable cluster did not stop; inspect '+root);

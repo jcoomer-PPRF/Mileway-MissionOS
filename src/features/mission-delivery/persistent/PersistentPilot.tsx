@@ -461,14 +461,22 @@ export function PersistentPilot() {
     setBusy(true);
     setMessage("");
     generation.current++;
+    let authenticated = false;
     try {
       const u = await api.login(username, password);
+      authenticated = true;
       setPassword("");
       setUser(u);
       await refresh();
     } catch (err) {
       setPassword("");
-      handleError(err);
+      if (!authenticated && api.revoked(err)) {
+        clear(
+          "Sign-in was not accepted. Check your training username, password and account access.",
+        );
+      } else {
+        handleError(err);
+      }
     } finally {
       setBusy(false);
     }
