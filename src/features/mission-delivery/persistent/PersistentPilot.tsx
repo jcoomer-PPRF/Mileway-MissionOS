@@ -69,7 +69,7 @@ const messages: Record<string, string> = {
   TRANSIENT_FAILURE:
     "Connection interrupted. Your edits remain in this page. Retry when the connection returns.",
 };
-export function PersistentPilot() {
+export function PersistentPilot({ hostedStaging = false }: { hostedStaging?: boolean } = {}) {
   const [user, setUser] = useState<api.User | null>(null),
     [boot, setBoot] = useState(true),
     [checkingAccess, setCheckingAccess] = useState(false),
@@ -485,7 +485,7 @@ export function PersistentPilot() {
     setBusy(true);
     try {
       await api.logout();
-      clear("Signed out. Saved training notes remain in the local database.");
+      clear(hostedStaging ? "Signed out. Saved fictional notes remain in isolated staging." : "Signed out. Saved training notes remain in the local database.");
     } catch (err) {
       handleError(err);
     } finally {
@@ -510,14 +510,14 @@ export function PersistentPilot() {
   const filled = definitions.filter(([k]) => fields?.[k]?.trim()).length;
   const editable = !!m && !historical && !busy && !actionPending;
   const status = historical ? "saved" : m?.status || "saved";
-  if (boot) return <main className="p-8">Loading local training session…</main>;
+  if (boot) return <main className="p-8">Loading training session…</main>;
   if (!user)
     return (
       <main className="min-h-screen bg-slate-100 p-5 sm:p-10">
         <section className={panel + " mx-auto max-w-lg"}>
           <h1 className="text-3xl font-bold">MissionOS</h1>
           <p className="mt-2 font-semibold text-emerald-800">
-            MD02 local training
+            {hostedStaging ? "MD02 hosted staging" : "MD02 local training"}
           </p>
           <p className="my-5 text-slate-600">
             Fictional data only. Service records remain in OneStep. Use the
@@ -666,7 +666,7 @@ export function PersistentPilot() {
             FICTIONAL TRAINING DATA · NOT A SERVICE RECORD · NOT SIGNED
           </strong>
           <p>
-            Saved drafts stay in the disposable local database. Unsaved edits
+            {hostedStaging ? "Saved fictional drafts stay in isolated Supabase staging." : "Saved drafts stay in the disposable local database."} Unsaved edits
             exist only in this page and can be lost if it is forcibly closed.
           </p>
         </div>
