@@ -391,6 +391,8 @@ SQL tests use a minimal Supabase shim, including hosted default function grants.
 hosted validation is recorded in [STAGING_VALIDATION.md](STAGING_VALIDATION.md). Provider and
 production release checks remain in
 [MILEWAY_MIGRATION_RUNBOOK.md](MILEWAY_MIGRATION_RUNBOOK.md).
+PR #1 is merged; the post-merge hosting recommendation, read-only preflight scripts,
+and remaining live setup are in [PRODUCTION_RELEASE.md](PRODUCTION_RELEASE.md).
 
 If attachment cleanup fails after a successful save, the record remains saved and a warning is
 logged. An administrator can retry removing the unreferenced object through the Storage API;

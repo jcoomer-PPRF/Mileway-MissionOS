@@ -1,8 +1,12 @@
 # Mileway Enterprise — Build Handoff
 
-**Status:** hardening and reporting-integrity implementation prepared on
-`codex/hardening-and-integrity`, based on `claude/hardening-0011`. The implementation is published as PR #1, with hosted staging
-validation recorded in `STAGING_VALIDATION.md`. Merge and production deployment have not occurred. The source, README, and migration runbook describe
+**Status, 2026-10-24:** PR #1 merged to `main` as
+`d35ca6963a094dbaea9436a96c6005f6ea8e8619`; post-merge CI passed. Hosted staging
+validation is recorded in `STAGING_VALIDATION.md`, a dated pre-merge snapshot.
+The backend is initialized and the frontend is published at `missionos.peerpoint.org`;
+Auth Site URL and first-owner confirmation/sign-in are verified; broader operational
+acceptance remains pending. Hosting and preflight preparation are in
+`PRODUCTION_RELEASE.md`. The source, README, and migration runbook describe
 the current behavior. Sections 4–5 preserve the Phase 1/2 history; later hardening supersedes their
 bootstrap and file-access behavior.
 
@@ -147,7 +151,8 @@ Migration mapping (preserves existing access): `administrator` → `owner` (rena
 The reviewed `main` baseline was `a8bb24b`; the existing `claude/hardening-0011` branch was
 `001aaf2`. The implementation branch `codex/hardening-and-integrity` includes that branch's SQL,
 app changes, and test suite, then adds migrations `0012`–`0014` and the related app changes.
-The implementation is published as PR #1; inspect current branch and CI state before merging.
+PR #1 merged on 2026-10-24 as `d35ca6963a094dbaea9436a96c6005f6ea8e8619`.
+Its source tree is `e80b77c3e24ccb70b22c081994367805af0372df`, and post-merge CI passed.
 
 ## 7. Hardening implementation and remaining release checks
 
@@ -160,6 +165,8 @@ The implementation is published as PR #1; inspect current branch and CI state be
   completed-service maintenance baselines, and future-reading exclusion.
 - `0014`: atomic owner account updates and durable Auth synchronization with leased, retryable
   work. An Auth failure never rolls back a database deactivation.
+- `20261023230154_hosted_function_permissions`: explicit hosted-role function grants
+  and fixed search paths, verified against real Supabase defaults.
 - App: private caches reset by account and permission scope; read errors block reports/exports;
   complete paginated queries; date-filtered reports; future-free YTD; formula-safe CSV;
   authenticated document downloads; failed/replaced/deleted upload cleanup; invitation settings.
@@ -168,9 +175,14 @@ The implementation is published as PR #1; inspect current branch and CI state be
   mocked Chromium browser checks. CI runs the same categories. See `supabase/tests/README.md`.
 
 **Release work still required:** review completed core hosted checks in `STAGING_VALIDATION.md`,
-finish Google/email provider checks and the production preflight in
-`MILEWAY_MIGRATION_RUNBOOK.md`, review real existing-data preflight results, deploy the Edge
-Function, configure production values, and review before merging/deploying. Core password Auth, Storage HTTP, Edge runtime, outage recovery, and real browser flows have
+finish Google/email provider checks and the production setup in
+`PRODUCTION_RELEASE.md` and `MILEWAY_MIGRATION_RUNBOOK.md`. The original project was
+resumed, confirmed empty, and initialized on 2026-10-24 with all 15 migrations and
+the matching Edge Function. The first owner invitation is consumed by a confirmed,
+active owner who has signed in, and current
+2026 date-effective reference rates are configured. The frontend is deployed on
+Cloudflare Pages and the custom domain is active; email/Google provider verification and entity
+configuration remain. Core password Auth, Storage HTTP, Edge runtime, outage recovery, and real browser flows have
 passed on isolated staging. Google and email-delivery verification still need provider setup. Existing dependency
 advisories remain a separate maintenance task. No reminder delivery or residents module was added.
 
@@ -215,8 +227,8 @@ All are editable in-app; none block Phase 3, but confirm before treating any as 
 
 In recommended order:
 
-1. **Hardening and integrity release — current work.** The implementation is ready for review;
-   complete hosted staging checks and merge/deploy before building reminders on it.
+1. **Hardening and integrity release — current work.** Hosted staging validation and the merge
+   are complete; finish production setup and release before building reminders on it.
 2. **Automated reminders (email) — planned Phase 3 after the hardening release.** Selected direction. Turn the existing due/expiring signals (`v_maintenance_due`, `v_documents_expiring`, `v_driver_credentials`, vehicle expiration fields) into a scheduled digest email via a server-side job (e.g., Supabase Edge Function on a schedule + an email provider). Adds a delivery layer on top of what already computes. Two settled design calls: a single digest (not one email per item), and minimal detail in the body (category + link back into the app, never a named person's credential or document contents in plaintext — the in-app access gates must hold). Replace the hardcoded `EXPIRATION_WINDOW_DAYS` with configurable per-type lead times. The scheduled job runs with elevated privilege (service role, bypassing RLS) — isolate that path and keep the service role off the client.
 3. **Native GPS capture** via Capacitor packaging: background location, geofence-by-GPS auto-categorization, push notifications. The trip GPS columns and the `find_location_for_point()` helper already exist for this. Deferred behind reminders — bigger lift (native build/deploy, background-location permissions) and a longer maintenance tail.
 4. **Accounting / payroll / banking integrations** (e.g., QuickBooks, Xero). Currently a deliberate exclusion; lift only when Jeff decides.
