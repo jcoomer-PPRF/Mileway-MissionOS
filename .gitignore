@@ -33,3 +33,6 @@ supabase/.temp/
 dist-md02
 
 __pycache__/
+
+# Isolated hosted staging build
+dist-md02-staging

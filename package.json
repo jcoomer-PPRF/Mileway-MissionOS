@@ -20,7 +20,9 @@
     "dev:md02": "vite --mode md02 --host 127.0.0.1 --port 5175 --strictPort",
     "build:md02": "tsc --noEmit && vite build --mode md02",
     "test:md02": "playwright test --config playwright.md02.config.ts",
-    "verify:md02:release": "node scripts/md02/verify-release.mjs"
+    "verify:md02:release": "node scripts/md02/verify-release.mjs",
+    "dev:md02:staging": "MD02_APP_PORT=5215 MD02_GATEWAY_PORT=5216 vite --mode md02-staging --host 127.0.0.1 --port 5215 --strictPort",
+    "build:md02:staging": "tsc --noEmit && vite build --mode md02-staging"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

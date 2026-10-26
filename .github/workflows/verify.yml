@@ -35,8 +35,11 @@ jobs:
       - run: npm run build
       - run: npm run build:md01
       - run: npm run build:md02
+      - run: npm run build:md02:staging
       - run: node scripts/verify-md01-build.mjs
       - run: node scripts/verify-md02-build.mjs
+      - run: node scripts/verify-md02-staging-build.mjs
+      - run: node --test tests/md02-staging-config.test.mjs
       - run: bash supabase/tests/run.sh mileway_ci_test
       - run: bash supabase/tests/upgrade.sh
       - run: sh supabase/tests/runner_guard.sh

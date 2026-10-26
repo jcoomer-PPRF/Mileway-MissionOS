@@ -1,0 +1,44 @@
+[
+  {
+    "username": "training-author",
+    "id": "4248f200-a441-49b7-9ad8-3323d6250b05",
+    "email": "md02-staging-author@example.invalid",
+    "label": "TRAINING author"
+  },
+  {
+    "username": "training-reviewer",
+    "id": "58ff52fe-9fae-40a1-a9c2-c11cf78410b3",
+    "email": "md02-staging-reviewer@example.invalid",
+    "label": "TRAINING reviewer"
+  },
+  {
+    "username": "training-unassigned",
+    "id": "ab231b51-5a28-4dc0-a7c2-98966cdca0c3",
+    "email": "md02-staging-unassigned@example.invalid",
+    "label": "TRAINING unassigned"
+  },
+  {
+    "username": "training-observer",
+    "id": "fe72229d-f478-463d-94ff-4e56a43b7c6e",
+    "email": "md02-staging-observer@example.invalid",
+    "label": "TRAINING observer"
+  },
+  {
+    "username": "training-assigner",
+    "id": "50c590f7-4c8f-4c39-b2f1-2c89f51bc315",
+    "email": "md02-staging-assigner@example.invalid",
+    "label": "TRAINING assigner"
+  },
+  {
+    "username": "training-foreign",
+    "id": "407643d2-4a78-4b72-8501-e5f413af59d5",
+    "email": "md02-staging-foreign@example.invalid",
+    "label": "TRAINING foreign"
+  },
+  {
+    "username": "training-inactive",
+    "id": "91469719-e5f6-4687-ace2-79318c2bf09d",
+    "email": "md02-staging-inactive@example.invalid",
+    "label": "TRAINING inactive"
+  }
+]

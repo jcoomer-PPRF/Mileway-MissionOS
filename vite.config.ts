@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
       transformIndexHtml: {
         order: "post",
         handler(html, context) {
-          if (!["md01", "md02"].includes(mode) || !context.bundle) return html;
+          if (!["md01", "md02", "md02-staging"].includes(mode) || !context.bundle) return html;
           return {
             html,
             tags: [
@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
                   "http-equiv": "Content-Security-Policy",
                   content:
                     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src " +
-                    (mode === "md02" ? "'self'" : "'none'") +
+                    (mode.startsWith("md02") ? "'self'" : "'none'") +
                     "; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'",
                 },
                 injectTo: "head-prepend",
@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => ({
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   server:
-    mode === "md02"
+    mode.startsWith("md02")
       ? {
           host: "127.0.0.1",
           port: Number(process.env.MD02_APP_PORT || 5175),
@@ -59,11 +59,13 @@ export default defineConfig(({ mode }) => ({
     // browser compatibility when upgrading the build tool.
     target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
     outDir:
-      mode === "md02" ? "dist-md02" : mode === "md01" ? "dist-md01" : "dist",
+      mode === "md02-staging" ? "dist-md02-staging" : mode === "md02" ? "dist-md02" : mode === "md01" ? "dist-md01" : "dist",
     rollupOptions: {
       input: path.resolve(
         __dirname,
-        mode === "md02"
+        mode === "md02-staging"
+          ? "md02-staging.html"
+          : mode === "md02"
           ? "md02.html"
           : mode === "md01"
             ? "demo.html"
@@ -73,7 +75,7 @@ export default defineConfig(({ mode }) => ({
         // Split heavy libraries so the initial bundle (and the eventual
         // Capacitor app payload) stays lean.
         manualChunks:
-          mode === "md01" || mode === "md02"
+          mode === "md01" || mode.startsWith("md02")
             ? {
                 "vendor-react": ["react", "react-dom", "react-router-dom"],
               }
